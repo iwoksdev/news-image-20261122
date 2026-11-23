@@ -114,6 +114,21 @@ def center_text(d, cx, y, s, font, fill):
     return w
 
 
+def draw_chip(d, x, y, s, fill):
+    """One consistent chip: 18px tall, PT Serif Bold 12, text centred by bbox.
+
+    Every numeral chip on the page uses this — same height, same font, same
+    baseline — so no chip's number sits high, low, big or small vs the others.
+    Returns the chip width."""
+    fw = PT(12, "Bold")
+    cw = d.textlength(s, font=fw) + 12
+    rrect(d, [x, y, x + cw, y + 18], 3, fill=fill)
+    bb = d.textbbox((0, 0), s, font=fw)
+    th = bb[3] - bb[1]
+    d.text((x + 6, y + (18 - th) // 2 - bb[1]), s, font=fw, fill=(255, 255, 255))
+    return cw
+
+
 def vgrad(w, h, top, bottom):
     img = Image.new("RGB", (1, h))
     px = img.load()
@@ -205,12 +220,13 @@ def place_pins(items, box):
 
 
 # ---------------------------------------------------------------- scenes
-def _person(d, cx, top, s, skin, suit, hair):
+def _person(d, cx, top, s, skin, suit, hair, bald=False):
     """A seated delegate: head + shoulders, seen from behind the desk."""
     hr = 3.4 * s
     d.ellipse([cx - hr, top, cx + hr, top + 2 * hr], fill=skin)
-    d.pieslice([cx - hr, top - hr * 0.25, cx + hr, top + hr * 0.9],
-               180, 360, fill=hair)
+    if not bald:
+        d.pieslice([cx - hr, top - hr * 0.25, cx + hr, top + hr * 0.9],
+                   180, 360, fill=hair)
     sw = 7.5 * s
     sh = 7.0 * s
     d.rounded_rectangle([cx - sw, top + 2 * hr - 1, cx + sw,
@@ -223,50 +239,76 @@ def paint_lead(d, box):
     w, h = x1 - x0, y1 - y0
     g = vgrad(w, h, (22, 40, 58), (74, 52, 34))
     d._image.paste(g, (int(x0), int(y0)))
-    # warm stage glow at the back wall
-    glow(d._image, (x0 + w * 0.30, y0 + h * 0.02, x0 + w * 0.72, y0 + h * 0.42),
-         (255, 190, 110), 30)
-    # chandelier, top centre
-    cx, cy = x0 + w * 0.50, y0 + h * 0.10
-    d.line([cx, y0 + 2, cx, cy], fill=(201, 168, 106), width=2)
-    d.line([cx - 26, cy + 6, cx + 26, cy + 6], fill=(201, 168, 106), width=2)
-    for dx in (-24, -12, 0, 12, 24):
-        d.ellipse([cx + dx - 2.5, cy + 2, cx + dx + 2.5, cy + 7],
+    # ceiling band + beam
+    d.rectangle([x0, y0, x1, y0 + h * 0.05], fill=(30, 48, 68))
+    d.line([x0, y0 + h * 0.05, x1, y0 + h * 0.05], fill=(201, 168, 106), width=1)
+    # side drapes with folds
+    for dx0, dx1 in ((x0, x0 + w * 0.035), (x1 - w * 0.035, x1)):
+        d.rectangle([dx0, y0, dx1, y1], fill=(56, 32, 36))
+        for fx in (0.33, 0.66):
+            fx0 = dx0 + (dx1 - dx0) * fx
+            d.line([fx0, y0, fx0, y1], fill=(78, 46, 50), width=1)
+    # warm stage glow behind the screen
+    glow(d._image, (x0 + w * 0.28, y0 + h * 0.04, x0 + w * 0.72, y0 + h * 0.44),
+         (255, 190, 110), 55)
+    # chandelier, two tiers, top centre
+    cx, cy1, cy2 = x0 + w * 0.50, y0 + h * 0.06, y0 + h * 0.105
+    d.line([cx, y0 + 2, cx, cy1], fill=(201, 168, 106), width=2)
+    glow(d._image, (cx - 34, cy1 - 8, cx + 34, cy2 + 12), (255, 210, 130), 45)
+    d.line([cx - 20, cy1, cx + 20, cy1], fill=(201, 168, 106), width=2)
+    for dx in (-18, -9, 0, 9, 18):
+        d.ellipse([cx + dx - 2.5, cy1 - 3, cx + dx + 2.5, cy1 + 2],
                   fill=(255, 217, 122))
-    d.ellipse([cx - 4, cy - 4, cx + 4, cy + 4], fill=(255, 217, 122))
+    d.line([cx - 12, cy1, cx - 12, cy2], fill=(201, 168, 106), width=1)
+    d.line([cx + 12, cy1, cx + 12, cy2], fill=(201, 168, 106), width=1)
+    d.line([cx - 30, cy2, cx + 30, cy2], fill=(201, 168, 106), width=2)
+    for dx in (-28, -19, -10, 0, 10, 19, 28):
+        d.ellipse([cx + dx - 2.5, cy2 - 3, cx + dx + 2.5, cy2 + 2],
+                  fill=(255, 217, 122))
+        d.polygon([(cx + dx, cy2 + 3), (cx + dx - 2, cy2 + 8),
+                   (cx + dx + 2, cy2 + 8)], fill=(255, 225, 150))
+    d.ellipse([cx - 4, cy1 - 4, cx + 4, cy1 + 4], fill=(255, 217, 122))
     # wall clock, top left — late hour, overtime
     ccx, ccy = x0 + w * 0.075, y0 + h * 0.13
     d.ellipse([ccx - 11, ccy - 11, ccx + 11, ccy + 11], fill=(238, 232, 214),
               outline=(120, 100, 70), width=2)
+    for ang in (0, 90, 180, 270):
+        a = math.radians(ang)
+        d.line([ccx + 8 * math.cos(a), ccy + 8 * math.sin(a),
+                ccx + 10 * math.cos(a), ccy + 10 * math.sin(a)],
+               fill=(120, 100, 70), width=1)
     d.line([ccx, ccy, ccx + 6, ccy - 4], fill=INK, width=2)
     d.line([ccx, ccy, ccx, ccy - 8], fill=INK, width=2)
     draw_tracked_c(d, ccx, ccy + 13, "OVERTIME", IN(7), (232, 220, 192), 0.8)
-    # big screen: the pact, no consensus
-    sx0, sy0, sx1, sy1 = x0 + w * 0.335, y0 + h * 0.16, x0 + w * 0.665, y0 + h * 0.40
+    # big screen: the pact, no consensus (ends 0.37h, clear of the podium)
+    sx0, sy0, sx1, sy1 = x0 + w * 0.335, y0 + h * 0.15, x0 + w * 0.665, y0 + h * 0.37
     d.rectangle([sx0, sy0, sx1, sy1], fill=(13, 26, 38),
                 outline=(201, 168, 106), width=2)
-    center_text(d, (sx0 + sx1) / 2, sy0 + 5, "ANTALYA PACT", IN(10),
+    center_text(d, (sx0 + sx1) / 2, sy0 + 4, "ANTALYA PACT", IN(10),
                 (232, 220, 192))
-    center_text(d, (sx0 + sx1) / 2, sy0 + 20, "NO CONSENSUS", IN(12), (224, 82, 68))
-    # podium with gavel and cracked globe
-    px0, px1 = x0 + w * 0.44, x0 + w * 0.56
-    py0, py1 = y0 + h * 0.40, y0 + h * 0.52
+    d.line([sx0 + 12, sy0 + 20, sx1 - 12, sy0 + 20], fill=(120, 100, 70), width=1)
+    center_text(d, (sx0 + sx1) / 2, sy0 + 24, "NO CONSENSUS", IN(12), (224, 82, 68))
+    # podium, wider, with gold trim, globe emblem on its front, gavel on top
+    px0, px1 = x0 + w * 0.42, x0 + w * 0.58
+    py0, py1 = y0 + h * 0.40, y0 + h * 0.55
     d.polygon([(px0, py1), (px0 + 6, py0), (px1 - 6, py0), (px1, py1)],
               fill=(107, 74, 47))
     d.rectangle([px0 - 4, py0 - 3, px1 + 4, py0 + 2], fill=(84, 58, 36))
-    gx, gy = x0 + w * 0.50, py0 - 12
-    d.ellipse([gx - 9, gy - 9, gx + 9, gy + 9], fill=(127, 176, 216),
+    d.line([px0 + 2, py0 + 6, px1 - 2, py0 + 6], fill=(201, 168, 106), width=1)
+    gx, gy = x0 + w * 0.50, py0 + 13
+    d.ellipse([gx - 8, gy - 8, gx + 8, gy + 8], fill=(127, 176, 216),
               outline=(232, 220, 192), width=1)
-    d.line([gx - 6, gy - 8, gx - 1, gy - 2, gx - 5, gy + 4, gx + 2, gy + 8],
+    d.line([gx - 5, gy - 7, gx - 1, gy - 2, gx - 4, gy + 3, gx + 2, gy + 7],
            fill=(240, 240, 230), width=1)
-    d.line([gx + 8, gy - 6, gx + 3, gy + 1, gx + 7, gy + 6], fill=(240, 240, 230), width=1)
-    # gavel on the podium
-    d.line([px0 + 10, py0 - 6, px0 + 26, py0 - 10], fill=(201, 168, 106), width=3)
-    d.rectangle([px0 + 22, py0 - 14, px0 + 30, py0 - 8], fill=(201, 168, 106))
-    # delegate rows: desks + figures, receding
-    skins = [(198, 164, 132), (172, 128, 96), (214, 182, 150), (150, 108, 82)]
+    d.line([gx + 7, gy - 5, gx + 3, gy + 1, gx + 6, gy + 5], fill=(240, 240, 230), width=1)
+    # gavel resting on the podium top
+    d.line([px0 + 8, py0 - 5, px0 + 26, py0 - 8], fill=(201, 168, 106), width=3)
+    d.rectangle([px0 + 22, py0 - 12, px0 + 30, py0 - 6], fill=(201, 168, 106))
+    # delegate rows: desks + figures, receding — jittered, varied, not stamped
+    skins = [(198, 164, 132), (172, 128, 96), (214, 182, 150), (150, 108, 82),
+             (226, 196, 164)]
     suits = [(30, 44, 66), (52, 52, 56), (44, 62, 48), (86, 42, 44),
-             (38, 38, 44), (66, 54, 40)]
+             (38, 38, 44), (66, 54, 40), (70, 60, 90)]
     hairs = [(30, 22, 16), (70, 70, 70), (160, 160, 160), (20, 20, 20)]
     rows = [(0.56, 0.62, 7), (0.70, 0.80, 8), (0.85, 1.00, 9)]
     for ri, (ry, rs, n) in enumerate(rows):
@@ -275,35 +317,57 @@ def paint_lead(d, box):
                     fill=(58, 44, 32))
         d.line([x0 + 6, desk_y, x1 - 6, desk_y], fill=(120, 96, 66), width=1)
         for i in range(n):
-            fx = x0 + (i + 0.5) * w / n
-            k = (ri * 7 + i * 3) % 4
-            _person(d, fx, desk_y - h * 0.055 * rs, rs, skins[k],
-                    suits[(ri * 5 + i) % 6], hairs[(ri + i) % 4])
-            # paper + laptop glow on the desk
-            d.rectangle([fx - 8, desk_y + 2, fx - 1, desk_y + 6], fill=(238, 232, 214))
-            d.rectangle([fx + 2, desk_y + 2, fx + 9, desk_y + 5], fill=(150, 190, 210))
-            if (ri + i) % 4 == 0:  # a small flag on some desks
+            jx = ((i * 13 + ri * 7) % 5 - 2) * 2
+            fx = x0 + (i + 0.5) * w / n + jx
+            fs = rs * (0.92 + ((i * 3 + ri) % 3) * 0.06)
+            k = (ri * 7 + i * 3) % 5
+            ptop = desk_y - h * 0.055 * fs
+            _person(d, fx, ptop, fs, skins[k], suits[(ri * 5 + i) % 7],
+                    hairs[(ri + i) % 4], bald=((ri + i) % 6 == 0))
+            # a few delegates raise a hand
+            if (ri * 3 + i) % 5 == 0:
+                hx = fx + 7 * fs
+                hy = ptop + 2 * 3.4 * fs
+                d.line([hx, hy, hx + 3, hy - 10], fill=skins[k], width=2)
+                d.ellipse([hx + 1, hy - 13, hx + 5, hy - 9], fill=skins[k])
+            # desk items cycle: paper+laptop, paper+glass, flag, laptop+paper
+            m = (ri + i) % 4
+            if m == 0:
+                d.rectangle([fx - 8, desk_y + 2, fx - 1, desk_y + 6], fill=(238, 232, 214))
+                d.rectangle([fx + 2, desk_y + 2, fx + 9, desk_y + 5], fill=(150, 190, 210))
+            elif m == 1:
+                d.rectangle([fx - 8, desk_y + 2, fx - 1, desk_y + 6], fill=(238, 232, 214))
+                d.rectangle([fx + 4, desk_y + 1, fx + 8, desk_y + 6], fill=(200, 220, 235),
+                            outline=(120, 140, 160), width=1)
+            elif m == 2:
                 d.rectangle([fx + 11, desk_y - 7, fx + 17, desk_y - 1],
                             fill=(43, 94, 167))
                 d.ellipse([fx + 13, desk_y - 5, fx + 15, desk_y - 3],
                           fill=(255, 217, 0))
+            else:
+                d.rectangle([fx - 9, desk_y + 2, fx - 2, desk_y + 5], fill=(150, 190, 210))
+                d.rectangle([fx + 1, desk_y + 2, fx + 8, desk_y + 6], fill=(238, 232, 214))
     # two standing objectors at the edges, arms raised
-    for sx, flip in ((x0 + w * 0.045, 1), (x1 - w * 0.045, -1)):
+    for sx, flip, suit in ((x0 + w * 0.045, 1, (30, 44, 66)),
+                           (x1 - w * 0.045, -1, (86, 42, 44))):
         by = y0 + h * 0.86
         d.ellipse([sx - 5, by - 34, sx + 5, by - 24], fill=(198, 164, 132))
+        d.pieslice([sx - 5, by - 36, sx + 5, by - 27], 180, 360, fill=(30, 22, 16))
         d.polygon([(sx - 9, by), (sx - 8, by - 24), (sx + 8, by - 24),
-                   (sx + 9, by)], fill=(30, 44, 66))
-        d.line([sx + flip * 7, by - 22, sx + flip * 13, by - 36],
+                   (sx + 9, by)], fill=suit)
+        d.line([sx + flip * 7, by - 22, sx + flip * 14, by - 38],
                fill=(198, 164, 132), width=3)
+        hx0, hx1 = sorted((sx + flip * 12, sx + flip * 16))
+        d.ellipse([hx0, by - 41, hx1, by - 37], fill=(198, 164, 132))
+    # warm floor reflection under the podium
+    glow(d._image, (x0 + w * 0.40, y0 + h * 0.52, x0 + w * 0.60, y0 + h * 0.62),
+         (255, 190, 110), 25)
     # floor strip
     d.rectangle([x0, y1 - h * 0.06, x1, y1], fill=(58, 42, 28))
     d.line([x0, y1 - h * 0.06, x1, y1 - h * 0.06], fill=(140, 112, 78), width=1)
-    # NO DEAL chip, top right
-    chip = "NO DEAL"
-    fw = IN(10)
-    cw = tracked_w(d, chip, fw, 1.2) + 14
-    rrect(d, [x1 - 8 - cw, y0 + 8, x1 - 8, y0 + 26], 3, fill=RED)
-    draw_tracked(d, x1 - 1 - cw, y0 + 11, chip, fw, (255, 255, 255), 1.2)
+    # NO DEAL chip, top right — same chip system as the cards
+    draw_chip(d, x1 - 8 - (d.textlength("NO DEAL", font=PT(12, "Bold")) + 12),
+              y0 + 8, "NO DEAL", RED)
 
 
 def paint_drones(d, box):
@@ -393,11 +457,7 @@ def paint_bahrain(d, box):
         d.line([ex, ey, ex + 7 * math.cos(a), ey + 7 * math.sin(a)],
                fill=(255, 180, 80), width=2)
     # chip
-    chip = "CLAIM vs DENIAL"
-    fw = IN(8)
-    cw = tracked_w(d, chip, fw, 0.8) + 10
-    rrect(d, [x0 + 6, y1 - 18, x0 + 6 + cw, y1 - 5], 3, fill=RED)
-    draw_tracked(d, x0 + 11, y1 - 16, chip, fw, (255, 255, 255), 0.8)
+    draw_chip(d, x0 + 6, y1 - 23, "CLAIM vs DENIAL", RED)
 
 
 def paint_hk(d, box):
@@ -437,11 +497,7 @@ def paint_hk(d, box):
     d.line([bx0 + 8, by0 - 8, bx0 + 13, by0 - 1, bx0 + 22, by0 - 12],
            fill=RED, width=3)
     # turnout chip
-    chip = "98.79%"
-    fw = PT(11, "Bold")
-    cw = d.textlength(chip, font=fw) + 10
-    rrect(d, [x0 + 30, y0 + 5, x0 + 30 + cw, y0 + 22], 3, fill=(20, 20, 31))
-    d.text((x0 + 35, y0 + 7), chip, font=fw, fill=(255, 255, 255))
+    draw_chip(d, x0 + 30, y0 + 5, "98.79%", (20, 20, 31))
 
 
 def paint_cricket(d, box):
@@ -465,9 +521,9 @@ def paint_cricket(d, box):
     d.line([x0 + w * 0.54, y0 + 18, x0 + w * 0.50, y0 + 8], fill=(150, 105, 60), width=3)
     d.ellipse([x0 + w * 0.68, y0 + 40, x0 + w * 0.68 + 7, y0 + 47], fill=(178, 34, 34),
               outline=(255, 255, 255), width=1)
-    # scoreboard
-    d.rectangle([x0 + w * 0.74, y0 + 6, x1 - 5, y0 + 26], fill=(20, 20, 31))
-    center_text(d, x0 + w * 0.87, y0 + 8, "720/9", PT(13, "Bold"), (255, 255, 255))
+    # scoreboard, top right
+    cw = d.textlength("720/9", font=PT(12, "Bold")) + 12
+    draw_chip(d, x1 - 5 - cw, y0 + 5, "720/9", (20, 20, 31))
     d.text((x0 + 6, y1 - 14), "RECORD TOTAL", font=IN(7), fill=(235, 235, 225))
 
 
@@ -515,11 +571,7 @@ def paint_f1(d, box):
                 d.rectangle([fx0 + c * 5, fy0 + r * 5, fx0 + c * 5 + 5, fy0 + r * 5 + 5],
                             fill=(20, 20, 20))
     d.line([fx0, fy0, fx0, fy0 + 22], fill=(220, 220, 215), width=1)
-    chip = "35 LEAD CHANGES"
-    fw = IN(8)
-    cw = tracked_w(d, chip, fw, 0.8) + 10
-    rrect(d, [x0 + 30, y0 + 5, x0 + 30 + cw, y0 + 19], 3, fill=(20, 20, 31))
-    draw_tracked(d, x0 + 35, y0 + 7, chip, fw, (255, 255, 255), 0.8)
+    draw_chip(d, x0 + 30, y0 + 5, "35 LEAD CHANGES", (20, 20, 31))
 
 
 def paint_tennis(d, box):
@@ -577,8 +629,7 @@ def paint_football(d, box):
               outline=(30, 30, 30), width=1)
     d.ellipse([bx - 2, by - 2, bx + 2, by + 2], fill=(30, 30, 30))
     # scoreboard
-    d.rectangle([x0 + 30, y0 + 6, x0 + 86, y0 + 24], fill=(20, 20, 31))
-    center_text(d, x0 + 58, y0 + 8, "4-0", PT(12, "Bold"), (255, 255, 255))
+    draw_chip(d, x0 + 30, y0 + 5, "4–0", (20, 20, 31))
 
 
 def paint_manipur(d, box):
@@ -595,11 +646,7 @@ def paint_manipur(d, box):
         px, py = x0 + w * cx, y0 + h * cy
         d.rectangle([px - 1, py - 5, px + 1, py + 5], fill=RED)
         d.rectangle([px - 5, py - 1, px + 5, py + 1], fill=RED)
-    chip = "17 DEAD"
-    fw = IN(9)
-    cw = tracked_w(d, chip, fw, 1.0) + 10
-    rrect(d, [x0 + 30, y0 + 5, x0 + 30 + cw, y0 + 20], 3, fill=RED)
-    draw_tracked(d, x0 + 35, y0 + 7, chip, fw, (255, 255, 255), 1.0)
+    draw_chip(d, x0 + 30, y0 + 5, "17 DEAD", RED)
 
 
 def paint_cikande(d, box):
@@ -634,11 +681,7 @@ def paint_cikande(d, box):
                   fill=(255, 150, 50))
         d.polygon([(cx - 3, fy - h * 0.40), (cx, fy - h * 0.52), (cx + 4, fy - h * 0.40)],
                   fill=(255, 220, 90))
-    chip = "3 DEAD · 36 MISSING"
-    fw = IN(8)
-    cw = tracked_w(d, chip, fw, 0.8) + 10
-    rrect(d, [x0 + 30, y0 + 5, x0 + 30 + cw, y0 + 19], 3, fill=RED)
-    draw_tracked(d, x0 + 35, y0 + 7, chip, fw, (255, 255, 255), 0.8)
+    draw_chip(d, x0 + 30, y0 + 5, "3 DEAD · 36 MISSING", RED)
 
 
 def paint_sparta(d, box):
@@ -663,6 +706,9 @@ def paint_sparta(d, box):
     hy = y0 + h * 0.62
     d.polygon([(x0 + w * 0.08, hy), (x0 + w * 0.92, hy), (x0 + w * 0.86, hy + 10),
                (x0 + w * 0.14, hy + 10)], fill=(40, 44, 52))
+    # the ship's name, very small and clean on the hull
+    draw_tracked_c(d, x0 + w * 0.50, hy + 1, "SPARTA II", IN(7),
+                   (240, 240, 235), 0.6)
     for i, col in enumerate([(178, 84, 44), (52, 96, 150), (90, 140, 70), (178, 84, 44)]):
         d.rectangle([x0 + w * (0.16 + i * 0.17), hy - 14, x0 + w * (0.30 + i * 0.17),
                      hy - 1], fill=col, outline=(30, 30, 34), width=1)
@@ -672,11 +718,7 @@ def paint_sparta(d, box):
     lx, ly = x0 + w * 0.62, y0 + h * 0.86
     d.polygon([(lx - 9, ly), (lx + 9, ly), (lx + 6, ly + 5), (lx - 6, ly + 5)],
               fill=(255, 140, 40))
-    chip = "16 SAFE"
-    fw = IN(9)
-    cw = tracked_w(d, chip, fw, 1.0) + 10
-    rrect(d, [x0 + 30, y0 + 5, x0 + 30 + cw, y0 + 20], 3, fill=(46, 139, 87))
-    draw_tracked(d, x0 + 35, y0 + 7, chip, fw, (255, 255, 255), 1.0)
+    draw_chip(d, x0 + 30, y0 + 5, "16 SAFE", (46, 139, 87))
 
 
 def paint_tehran(d, box):
@@ -708,11 +750,7 @@ def paint_tehran(d, box):
     d.line([bx - 7, by - 12, bx - 10, by - 16], fill=(255, 235, 180), width=1)
     d.line([bx + 7, by - 12, bx + 10, by - 16], fill=(255, 235, 180), width=1)
     d.line([bx, by - 13, bx, by - 17], fill=(255, 235, 180), width=1)
-    chip = "UP TO 2 HRS"
-    fw = IN(8)
-    cw = tracked_w(d, chip, fw, 0.8) + 10
-    rrect(d, [x0 + w * 0.52, y0 + 5, x0 + w * 0.52 + cw, y0 + 19], 3, fill=(20, 20, 31))
-    draw_tracked(d, x0 + w * 0.52 + 5, y0 + 7, chip, fw, (255, 255, 255), 0.8)
+    draw_chip(d, x0 + w * 0.52, y0 + 5, "UP TO 2 HRS", (20, 20, 31))
 
 
 def paint_gaza(d, box):
@@ -739,11 +777,7 @@ def paint_gaza(d, box):
     d.ellipse([tx + 6, ty, tx + 12, ty + 6], fill=(20, 20, 24))
     d.ellipse([tx + 26, ty, tx + 32, ty + 6], fill=(20, 20, 24))
     d.ellipse([tx + 38, ty, tx + 44, ty + 6], fill=(20, 20, 24))
-    chip = "3 KILLED"
-    fw = IN(9)
-    cw = tracked_w(d, chip, fw, 1.0) + 10
-    rrect(d, [x0 + 30, y0 + 5, x0 + 30 + cw, y0 + 20], 3, fill=RED)
-    draw_tracked(d, x0 + 35, y0 + 7, chip, fw, (255, 255, 255), 1.0)
+    draw_chip(d, x0 + 30, y0 + 5, "3 KILLED", RED)
 
 
 # ---------------------------------------------------------------- stories
@@ -951,20 +985,23 @@ def build():
     paint_lead(d, (16, 148, 656, 354))
     draw_side_card(d, 664, 148, 344, 102, CARDS[0])
     draw_side_card(d, 664, 254, 344, 100, CARDS[1])
-    # lead kicker / headline / dek
-    draw_tracked(d, 16, 360, "1 ANTALYA · CLIMATE", IN(10), RED, 1.2)
+    # lead kicker / headline / dek — headline enlarged to two lines so the
+    # white gap between the lead image and the dek is filled. PF(34) with
+    # 38pt leading is the largest that fits: line 2's glyphs end at 446,
+    # the dek starts at 452, and the cards stay at 486.
+    draw_tracked(d, 16, 358, "1 ANTALYA · CLIMATE", IN(10), RED, 1.2)
     rw = tracked_w(d, "AFP · AP · REUTERS", IN(9), 1.0)
-    draw_tracked(d, 1008 - rw, 361, "AFP · AP · REUTERS", IN(9), GREY, 1.0)
-    hl = fit_lines(d, LEAD["headline"], PF(29), 992, 2)
-    yy = 374
+    draw_tracked(d, 1008 - rw, 359, "AFP · AP · REUTERS", IN(9), GREY, 1.0)
+    hl = wrap(d, LEAD["headline"], PF(34), 600)
+    yy = 370
     for ln in hl:
-        d.text((16, yy), ln, font=PF(29), fill=INK)
-        yy += 34
+        d.text((16, yy), ln, font=PF(34), fill=INK)
+        yy += 38
     dl = fit_lines(d, LEAD["dek"] + " (" + LEAD["source"] + ")", PT(13), 992, 2)
-    yy = 446
+    yy = 452
     for ln in dl:
         d.text((16, yy), ln, font=PT(13), fill=INK_SOFT)
-        yy += 16
+        yy += 15
     # card rows 4-8 and 9-13
     for i, s in enumerate(CARDS[2:7]):
         draw_card(d, 16 + i * 200, 486, 192, 150, s)
@@ -1041,26 +1078,26 @@ def build():
                 line = line.rsplit(" ", 1)[0] + " ..."
             d.text((cx0 + 14, yy), line, font=PT(8), fill=INK)
             yy += 10
-    # stat strip
+    # stat strip — numbers lifted 3px so the "720/9" slash clears the labels
     d.line([16, 962, 1008, 962], fill=INK, width=1)
     for i, (num, lab) in enumerate(STATS):
         cx = 16 + i * 198.4 + 99.2
-        center_text(d, cx, 966, num, PT(24, "Bold"), INK)
-        draw_tracked_c(d, cx, 990, lab, IN(8), GREY, 1.0)
+        center_text(d, cx, 963, num, PT(24, "Bold"), INK)
+        draw_tracked_c(d, cx, 992, lab, IN(8), GREY, 1.0)
         if i:
-            d.line([16 + i * 198.4, 966, 16 + i * 198.4, 998], fill=(200, 194, 178),
+            d.line([16 + i * 198.4, 963, 16 + i * 198.4, 1000], fill=(200, 194, 178),
                    width=1)
     # DATE CHECK
-    d.text((16, 1000), DATE_CHECK, font=PT(9), fill=INK)
+    d.text((16, 1001), DATE_CHECK, font=PT(9), fill=INK)
     # footer
-    d.text((16, 1011), "Claims by warring sides are attributed. Every drawing "
+    d.text((16, 1012), "Claims by warring sides are attributed. Every drawing "
                        "and map is drawn in code.",
            font=PT(9, "Italic"), fill=GREY)
     src = ("Sources: AP · Reuters · AFP · CNN · Al Jazeera · SCMP · Dawn · "
            "The Hindu · Ukrinform · Khaleej Times · TOI · ThePrint · CNA · "
            "BBC · Yle · Wafa")
     sw = d.textlength(src, font=PT(9))
-    d.text((1008 - sw, 1011), src, font=PT(9), fill=GREY)
+    d.text((1008 - sw, 1012), src, font=PT(9), fill=GREY)
     return img
 
 
