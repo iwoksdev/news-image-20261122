@@ -557,155 +557,33 @@ def paint_football(d, box):
 
 
 def paint_manipur(d, box):
-    """Manipur: pixel map of NE India, Imphal ring, hospital crosses — pixel art."""
-    im, g = px_canvas(96, 27, (185, 210, 226))
-    # NE India landmass (lon 91-98, lat 22-29), simplified low-res shape
-    g.polygon([(8, 4), (30, 2), (60, 5), (88, 3), (93, 12), (85, 20),
-               (60, 24), (30, 25), (12, 22), (4, 12)], fill=(224, 211, 178))
-    # darker hill patch for texture
-    g.polygon([(40, 8), (55, 7), (62, 12), (55, 16), (42, 15)],
-              fill=(205, 192, 158))
-    # Imphal ring + dot (93.9E, 24.8N)
-    g.ellipse([36, 12, 44, 20], outline=RED)
-    g.rectangle([39, 15, 40, 16], fill=RED)
-    # hospital crosses
-    for cx, cy in [(29, 9), (53, 17), (69, 8)]:
-        g.rectangle([cx, cy - 2, cx, cy + 2], fill=RED)
-        g.rectangle([cx - 2, cy, cx + 2, cy], fill=RED)
-    # toll chip
-    px_chip(g, 15, 2, "17 DEAD", RED)
-    px_paste(d, box, im)
+    """Manipur map — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "manipur.png")
+
 
 
 def paint_cikande(d, box):
-    """Cikande: factory, sawtooth roof, flames, smoke — pixel art."""
-    im, g = px_canvas(96, 27, (200, 195, 185))
-    # sky bands: dusk grey top, pale bottom, checkerboard seam
-    g.rectangle([0, 0, 96, 12], fill=(140, 150, 165))
-    for xx in range(96):
-        if xx % 2 == 0:
-            g.point((xx, 12), fill=(200, 195, 185))
-    # smoke puffs
-    for cx, cy, r in [(29, 5, 5), (35, 3, 6), (42, 6, 4), (60, 4, 5), (67, 6, 4)]:
-        g.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(110, 112, 118))
-        g.ellipse([cx - r + 2, cy - r + 2, cx + r - 2, cy + r - 2],
-                  fill=(140, 142, 148))
-    # factory body + sawtooth roof + chimney
-    g.rectangle([4, 13, 92, 24], fill=(138, 141, 144))
-    for i in range(5):
-        sx = 4 + i * 16
-        g.polygon([(sx, 13), (sx + 8, 8), (sx + 16, 13)], fill=(110, 113, 116))
-    g.rectangle([79, 5, 83, 24], fill=(100, 102, 105))
-    # windows: 3 rows x 6 cols (third row clips below the box, as before)
-    for wy in range(3):
-        for wx in range(6):
-            g.rectangle([8 + wx * 14, 15 + wy * 6, 10 + wx * 14, 17 + wy * 6],
-                        fill=(255, 205, 110))
-    # flames from the roof
-    for cx in (24, 43, 62):
-        g.polygon([(cx - 3, 13), (cx, 7), (cx + 2, 12), (cx + 4, 8), (cx + 5, 13)],
-                  fill=(255, 150, 50))
-        g.polygon([(cx - 1, 13), (cx, 10), (cx + 2, 13)], fill=(255, 220, 90))
-    # casualty chip: the string is too long for one pixel line, so it stacks
-    px_chip2(g, 17, 2, "3 DEAD", "36 MISSING", RED)
-    px_paste(d, box, im)
+    """Cikande factory fire — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "cikande.png")
+
 
 
 def paint_sparta(d, box):
-    """Sparta II: sea, burning ship, containers, lifeboat — pixel art.
+    """Sparta II — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "sparta.png")
 
-    The old smooth version hid the stern flame and smoke behind the chip
-    and the first container; here both sit at the stern, left of the chip,
-    so the fire reads."""
-    im, g = px_canvas(96, 27, (52, 96, 130))
-    g.rectangle([0, 0, 96, 13], fill=(120, 165, 195))
-    for xx in range(96):
-        if xx % 2 == 0:
-            g.point((xx, 13), fill=(52, 96, 130))
-    # waves
-    for wy in (15, 18, 22, 25):
-        for wx in (5, 29, 53, 77):
-            g.point((wx - 2, wy), fill=(220, 235, 245))
-            g.point((wx - 1, wy + 1), fill=(220, 235, 245))
-            g.point((wx, wy + 1), fill=(220, 235, 245))
-            g.point((wx + 1, wy + 1), fill=(220, 235, 245))
-            g.point((wx + 2, wy), fill=(220, 235, 245))
-    # smoke + flame at the stern
-    for cx, cy, r in [(11, 5, 4), (14, 2, 4), (9, 2, 3)]:
-        g.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(105, 108, 114))
-    g.polygon([(10, 15), (12, 8), (13, 12), (14, 9), (15, 15)],
-              fill=(255, 150, 50))
-    g.polygon([(11, 15), (12, 11), (14, 15)], fill=(255, 220, 90))
-    # hull + name + containers + bridge
-    g.polygon([(8, 17), (88, 17), (83, 22), (13, 22)], fill=(40, 44, 52))
-    px_text(g, 31, 18, "SPARTA II", FONT35, (240, 240, 235))
-    for i, col in enumerate([(178, 84, 44), (52, 96, 150), (90, 140, 70),
-                             (178, 84, 44)]):
-        g.rectangle([15 + i * 16, 10, 28 + i * 16, 16], fill=col,
-                    outline=(30, 30, 34))
-    g.rectangle([79, 4, 86, 16], fill=(235, 235, 230))
-    g.rectangle([81, 1, 84, 4], fill=(178, 34, 34))
-    # lifeboat
-    g.polygon([(55, 23), (64, 23), (63, 25), (56, 25)], fill=(255, 140, 40))
-    # chip
-    px_chip(g, 15, 2, "16 SAFE", (46, 139, 87))
-    px_paste(d, box, im)
 
 
 def paint_tehran(d, box):
-    """Tehran at dusk: Milad Tower, skyline, lightbulb — pixel art."""
-    im, g = px_canvas(96, 27, (255, 150, 80))
-    # dusk bands: purple top, orange bottom, checkerboard seam
-    g.rectangle([0, 0, 96, 12], fill=(88, 66, 122))
-    for xx in range(96):
-        if xx % 2 == 0:
-            g.point((xx, 12), fill=(255, 150, 80))
-    # Milad Tower
-    g.polygon([(60, 24), (64, 4), (66, 4), (70, 24)], fill=(52, 44, 66))
-    g.ellipse([58, 5, 72, 11], fill=(72, 60, 88))
-    g.rectangle([63, 2, 67, 4], fill=(255, 190, 90))
-    # skyline
-    for fx, fh, fw in [(0, 8, 12), (12, 11, 10), (23, 9, 12), (36, 13, 12),
-                       (50, 10, 10), (75, 12, 12), (86, 9, 10)]:
-        g.rectangle([fx, 24 - fh, fx + fw, 24], fill=(48, 40, 60))
-    # one lit window
-    g.rectangle([38, 15, 40, 16], fill=(255, 210, 110))
-    # lightbulb, top left
-    bx, by = 13, 6
-    g.ellipse([bx - 3, by - 4, bx + 3, by + 3], outline=(255, 235, 180))
-    g.rectangle([bx - 1, by + 3, bx + 1, by + 4], fill=(255, 235, 180))
-    g.rectangle([bx - 1, by + 5, bx + 1, by + 5], fill=(255, 235, 180))
-    g.point((bx - 3, by - 6), fill=(255, 235, 180))
-    g.point((bx + 3, by - 6), fill=(255, 235, 180))
-    g.point((bx, by - 7), fill=(255, 235, 180))
-    # chip (starts at 43: the pixel chip is wider than the old smooth one)
-    px_chip(g, 43, 2, "UP TO 2 HRS", (20, 20, 31))
-    px_paste(d, box, im)
+    """Tehran at dusk — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "tehran.png")
+
 
 
 def paint_gaza(d, box):
-    """Gaza coast: sea, sand, strip outline, aid truck — pixel art."""
-    im, g = px_canvas(96, 27, (224, 211, 178))
-    # sea left, coastline diagonal
-    g.polygon([(0, 0), (40, 0), (29, 27), (0, 27)], fill=(146, 186, 214))
-    g.line([(40, 0), (29, 27)], fill=(240, 240, 235), width=1)
-    # Gaza strip outline (thin coastal strip)
-    g.polygon([(42, 2), (54, 2), (48, 25), (37, 25)], outline=RED)
-    px_text(g, 56, 3, "GAZA", FONT35, INK_SOFT)
-    # aid truck on the road
-    tx, ty = 50, 18
-    g.rectangle([tx, ty - 6, tx + 17, ty + 1], fill=(245, 245, 240),
-                outline=(120, 120, 115))
-    g.rectangle([tx + 17, ty - 4, tx + 22, ty + 1], fill=(200, 205, 210),
-                outline=(120, 120, 115))
-    g.rectangle([tx + 7, ty - 5, tx + 10, ty - 2], fill=RED)
-    g.rectangle([tx + 8, ty - 6, tx + 9, ty - 1], fill=RED)
-    g.rectangle([tx + 3, ty, tx + 5, ty + 3], fill=(20, 20, 24))
-    g.rectangle([tx + 13, ty, tx + 15, ty + 3], fill=(20, 20, 24))
-    g.rectangle([tx + 19, ty, tx + 21, ty + 3], fill=(20, 20, 24))
-    # chip
-    px_chip(g, 15, 2, "3 KILLED", RED)
-    px_paste(d, box, im)
+    """Gaza coast — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "gaza.png")
+
 
 
 # ---------------------------------------------------------------- stories
