@@ -378,6 +378,19 @@ def place_pins(items, box):
     return out
 
 
+def _scene(d, box, name):
+    """Paste a pre-rendered high-res scene PNG into its slot (NEAREST).
+
+    The PNG is drawn at 2x the slot size by scenes.py; the single NEAREST
+    resize lands it at full slot resolution (1x1 pixels)."""
+    im = Image.open(os.path.join(HERE, "scenes", name)).convert("RGB")
+    x0, y0, x1, y1 = box
+    w, h = int(x1 - x0), int(y1 - y0)
+    if im.size != (w, h):
+        im = im.resize((w, h), Image.NEAREST)
+    d._image.paste(im, (int(x0), int(y0)))
+
+
 # ---------------------------------------------------------------- scenes
 def _person(d, cx, top, s, skin, suit, hair, bald=False):
     """A seated delegate: head + shoulders, seen from behind the desk."""
@@ -502,82 +515,15 @@ def paint_lead(d, box):
 
 
 def paint_drones(d, box):
-    """Night over Ukraine: drones, bursts, a burning block — pixel art."""
-    im, g = px_canvas(172, 24, (13, 27, 46))
-    g.rectangle([0, 9, 172, 17], fill=(26, 51, 72))
-    g.rectangle([0, 18, 172, 18], fill=(39, 75, 99))
-    # stars
-    for sx, sy in [(14, 4), (38, 2), (77, 3), (107, 2), (134, 5), (155, 2),
-                   (57, 6), (95, 7)]:
-        g.point((sx, sy), fill=(220, 225, 235))
-    # crescent moon
-    mx, my = 151, 5
-    g.ellipse([mx - 3, my - 3, mx + 3, my + 3], fill=(232, 228, 205))
-    g.ellipse([mx - 1, my - 3, mx + 4, my + 3], fill=(13, 27, 46))
-    # drones: 3x3 X with red + green lights
-    for dx, dy in [(28, 7), (72, 5), (114, 9), (145, 12)]:
-        g.point((dx - 1, dy - 1), fill=(200, 205, 215))
-        g.point((dx + 1, dy - 1), fill=(200, 205, 215))
-        g.point((dx, dy), fill=(230, 230, 230))
-        g.point((dx - 1, dy + 1), fill=(200, 205, 215))
-        g.point((dx + 1, dy + 1), fill=(200, 205, 215))
-        g.point((dx - 2, dy - 1), fill=(255, 60, 50))
-        g.point((dx + 2, dy + 1), fill=(80, 220, 120))
-    # interception bursts
-    for bx, by in [(52, 13), (124, 15)]:
-        px_glow(g, bx - 4, by - 4, bx + 5, by + 5, (255, 170, 60))
-        for ox, oy in [(0, -3), (0, 3), (-3, 0), (3, 0), (-2, -2), (2, -2),
-                       (-2, 2), (2, 2)]:
-            g.point((bx + ox, by + oy), fill=(255, 205, 90))
-        g.rectangle([bx - 1, by - 1, bx + 1, by + 1], fill=(255, 230, 150))
-    # ground: city silhouette + burning block
-    g.rectangle([0, 19, 172, 24], fill=(10, 16, 26))
-    for bx, bw, bh in [(3, 17, 3), (24, 14, 2), (41, 21, 4), (89, 16, 3),
-                       (108, 19, 4), (151, 17, 3)]:
-        g.rectangle([bx, 19 - bh, bx + bw, 19], fill=(16, 26, 40))
-        for wy in range(2):
-            for wx in range(3):
-                g.point((bx + 3 + wx * 5, 19 - bh + 1 + wy * 2),
-                        fill=(255, 205, 110))
-    # the Dymer block, hit and burning
-    g.rectangle([65, 14, 82, 19], fill=(24, 34, 50))
-    px_glow(g, 67, 11, 81, 15, (255, 120, 40))
-    g.point((70, 12), fill=(255, 150, 50))
-    g.point((74, 11), fill=(255, 220, 90))
-    g.point((77, 12), fill=(255, 150, 50))
-    px_paste(d, box, im)
+    """Night over Ukraine — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "drones.png")
+
 
 
 def paint_bahrain(d, box):
-    """The Gulf: Bahrain, two radar dishes, claim vs denial — pixel art."""
-    im, g = px_canvas(172, 23, (185, 210, 226))
-    im.paste(px_map(172, 23, 47, 57, 24, 30, (185, 210, 226), (224, 211, 178)),
-             (0, 0))
-    # Bahrain island marker
-    bx, by = 62, 15
-    g.ellipse([bx - 4, by - 4, bx + 4, by + 4], outline=RED)
-    g.rectangle([bx - 1, by - 1, bx + 1, by + 1], fill=RED)
-    # radar dishes at al-Riffa and Awali
-    for dx, dy in [(107, 10), (134, 13)]:
-        g.rectangle([dx, dy + 1, dx, dy + 5], fill=(240, 240, 235))
-        g.rectangle([dx - 3, dy + 5, dx + 3, dy + 5], fill=(240, 240, 235))
-        g.rectangle([dx - 4, dy - 3, dx + 4, dy - 1], fill=(245, 245, 240))
-        g.rectangle([dx - 2, dy - 4, dx + 2, dy - 3], fill=(245, 245, 240))
-        g.rectangle([dx - 4, dy - 1, dx + 4, dy - 1], fill=(120, 120, 115))
-    # claimed strike: dashed red line to a burst
-    ex, ey = 120, 7
-    for t in range(0, 10, 2):
-        px = int(bx + (ex - bx) * t / 10)
-        py = int(by + (ey - by) * t / 10)
-        g.rectangle([px, py, px + 1, py + 1], fill=RED)
-    for ox, oy in [(0, -3), (0, 3), (-3, 0), (3, 0), (-2, -2), (2, -2),
-                   (-2, 2), (2, 2)]:
-        g.point((ex + ox, ey + oy), fill=(255, 180, 80))
-    g.rectangle([ex - 1, ey - 1, ex + 1, ey + 1], fill=(255, 230, 150))
-    # chip top-left: the pixel chip is wider than the old smooth one, so it
-    # moves up here to keep clear of the Bahrain marker ring.
-    px_chip(g, 19, 2, "CLAIM VS DENIAL", RED)
-    px_paste(d, box, im)
+    """The Gulf — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "bahrain.png")
+
 
 
 def paint_hk(d, box):
