@@ -507,56 +507,57 @@ def scene_football():
 
 
 def scene_manipur():
-    """Manipur: pixel map of NE India, Imphal ring, hospital crosses. Slot 192x54."""
+    """Manipur: recognizable NE-India map, Imphal ring, crosses. Slot 192x54."""
     im, g = cv(192, 54, (185, 210, 226))
-    # NE India landmass, simplified low-res shape
-    PG(g, [(16, 8), (60, 4), (120, 10), (176, 6), (186, 24), (170, 40),
-           (120, 48), (60, 50), (24, 44), (8, 24)], (224, 211, 178))
+    # NE India: blocky east region + narrow western corridor (chicken's neck)
+    PG(g, [(70, 8), (150, 6), (186, 14), (188, 30), (170, 46), (120, 50),
+           (80, 46), (70, 32), (60, 30), (30, 26), (8, 24), (8, 32),
+           (30, 34), (60, 34), (70, 36)], (224, 211, 178))
     # darker hill patch for texture
-    PG(g, [(80, 16), (110, 14), (124, 24), (110, 32), (84, 30)],
+    PG(g, [(100, 16), (130, 14), (144, 24), (130, 32), (104, 30)],
        (205, 192, 158))
-    # Imphal ring + dot
-    EL(g, 72, 24, 88, 40, None, o=RED)
-    R(g, 78, 30, 2, 2, RED)
-    # hospital crosses
-    for cx, cy in [(58, 18), (106, 34), (138, 16)]:
-        R(g, cx, cy - 4, 2, 9, RED)
-        R(g, cx - 4, cy, 9, 2, RED)
+    # Imphal ring + dot, BIG
+    EL(g, 118, 20, 140, 42, None, o=RED)
+    R(g, 127, 29, 4, 4, RED)
+    # hospital crosses, BIG
+    for cx, cy in [(88, 16), (158, 40), (168, 14)]:
+        R(g, cx - 1, cy - 6, 3, 12, RED)
+        R(g, cx - 6, cy - 1, 12, 3, RED)
     # toll chip
-    CHIP(g, 30, 4, "17 DEAD", RED)
+    CHIP(g, 6, 3, "17 DEAD", RED)
     return im
 
 
 def scene_cikande():
-    """Cikande: factory, sawtooth roof, flames, smoke. Slot 192x54."""
+    """Cikande: BIG factory, sawtooth roof, flames, smoke. Slot 192x54."""
     im, g = cv(192, 54, (200, 195, 185))
     # sky bands: dusk grey top, pale bottom, checkerboard seam
     R(g, 0, 0, 192, 24, (140, 150, 165))
     for xx in range(192):
         if xx % 2 == 0:
             P(g, xx, 24, (200, 195, 185))
-    # smoke puffs
-    for cx, cy, r in [(58, 10, 10), (70, 6, 12), (84, 12, 8), (120, 8, 10),
-                      (134, 12, 8)]:
+    # smoke puffs (above the flames, right side)
+    for cx, cy, r in [(110, 10, 10), (124, 6, 12), (138, 12, 8), (160, 8, 10),
+                      (174, 12, 8)]:
         EL(g, cx - r, cy - r, cx + r, cy + r, (110, 112, 118))
         EL(g, cx - r + 4, cy - r + 4, cx + r - 4, cy + r - 4, (140, 142, 148))
-    # factory body + sawtooth roof + chimney
+    # factory body + sawtooth roof + chimney (far right)
     R(g, 8, 26, 184, 22, (138, 141, 144))
     for i in range(5):
         sx = 8 + i * 32
         PG(g, [(sx, 26), (sx + 16, 16), (sx + 32, 26)], (110, 113, 116))
-    R(g, 158, 10, 8, 38, (100, 102, 105))
-    # windows: 3 rows x 6 cols (third row clips below the box, as before)
-    for wy in range(3):
+    R(g, 176, 10, 8, 38, (100, 102, 105))
+    # windows: 2 rows x 6 cols
+    for wy in range(2):
         for wx in range(6):
             R(g, 16 + wx * 28, 30 + wy * 12, 4, 4, (255, 205, 110))
-    # flames from the roof
-    for cx in (48, 86, 124):
-        PG(g, [(cx - 6, 26), (cx, 14), (cx + 4, 24), (cx + 8, 16),
-               (cx + 10, 26)], (255, 150, 50))
-        PG(g, [(cx - 2, 26), (cx, 20), (cx + 4, 26)], (255, 220, 90))
-    # casualty chip: the string is too long for one pixel line, so it stacks
-    CHIP2(g, 34, 4, "3 DEAD", "36 MISSING", RED)
+    # flames, BIG and clear of the chip (right side)
+    for cx in (96, 128, 158):
+        PG(g, [(cx - 8, 26), (cx, 8), (cx + 5, 22), (cx + 9, 12),
+               (cx + 11, 26)], (255, 150, 50))
+        PG(g, [(cx - 3, 26), (cx, 16), (cx + 5, 26)], (255, 220, 90))
+    # casualty chip top-left (two lines, F5)
+    CHIP2(g, 8, 3, "3 DEAD", "36 MISSING", RED)
     return im
 
 
@@ -578,11 +579,11 @@ def scene_sparta():
             P(g, wx, wy + 2, (220, 235, 245))
             P(g, wx + 2, wy + 2, (220, 235, 245))
             P(g, wx + 4, wy, (220, 235, 245))
-    # smoke + flame at the stern
+    # smoke + flame at the stern, bigger so the fire reads
     for cx, cy, r in [(22, 10, 8), (28, 4, 8), (18, 4, 6)]:
         EL(g, cx - r, cy - r, cx + r, cy + r, (105, 108, 114))
-    PG(g, [(20, 30), (24, 16), (26, 24), (28, 18), (30, 30)], (255, 150, 50))
-    PG(g, [(22, 30), (24, 22), (28, 30)], (255, 220, 90))
+    PG(g, [(18, 30), (22, 12), (25, 22), (28, 10), (32, 30)], (255, 150, 50))
+    PG(g, [(21, 30), (24, 18), (29, 30)], (255, 220, 90))
     # hull + name + containers + bridge
     PG(g, [(16, 34), (176, 34), (166, 44), (26, 44)], (40, 44, 52))
     TXT(g, 62, 36, "SPARTA II", F5, (240, 240, 235))
@@ -599,56 +600,59 @@ def scene_sparta():
 
 
 def scene_tehran():
-    """Tehran at dusk: Milad Tower, skyline, lightbulb. Slot 192x54."""
+    """Tehran at dusk: BIG Milad Tower, skyline, lightbulb. Slot 192x54."""
     im, g = cv(192, 54, (255, 150, 80))
     # dusk bands: purple top, orange bottom, checkerboard seam
     R(g, 0, 0, 192, 24, (88, 66, 122))
     for xx in range(192):
         if xx % 2 == 0:
             P(g, xx, 24, (255, 150, 80))
-    # Milad Tower
-    PG(g, [(120, 48), (128, 8), (132, 8), (140, 48)], (52, 44, 66))
-    EL(g, 116, 10, 144, 22, (72, 60, 88))
-    R(g, 126, 4, 8, 4, (255, 190, 90))
-    # skyline
+    # Milad Tower, BIG centre-right: tapering shaft + wide pod + antenna
+    PG(g, [(112, 48), (126, 10), (138, 10), (152, 48)], (52, 44, 66))
+    EL(g, 108, 8, 156, 26, (72, 60, 88))
+    R(g, 108, 14, 48, 3, (255, 190, 90))
+    R(g, 130, 2, 4, 6, (255, 190, 90))
+    # skyline flanking the tower
     for fx, fh, fw in [(0, 16, 24), (24, 22, 20), (46, 18, 24), (72, 26, 24),
-                       (100, 20, 20), (150, 24, 24), (172, 18, 20)]:
+                       (160, 24, 24), (182, 18, 10)]:
         R(g, fx, 48 - fh, fw, fh, (48, 40, 60))
     # one lit window
     R(g, 76, 30, 4, 2, (255, 210, 110))
-    # lightbulb, top left
-    bx, by = 26, 12
+    # lightbulb, top right
+    bx, by = 172, 12
     EL(g, bx - 6, by - 8, bx + 6, by + 6, None, o=(255, 235, 180))
     R(g, bx - 2, by + 6, 4, 2, (255, 235, 180))
     R(g, bx - 2, by + 10, 4, 1, (255, 235, 180))
     P(g, bx - 6, by - 12, (255, 235, 180))
     P(g, bx + 6, by - 12, (255, 235, 180))
     P(g, bx, by - 14, (255, 235, 180))
-    # chip (starts at 86: the pixel chip is wider than the old smooth one)
-    CHIP(g, 86, 4, "UP TO 2 HRS", DARK)
+    # chip top-left
+    CHIP(g, 6, 3, "UP TO 2 HRS", DARK)
     return im
 
 
 def scene_gaza():
-    """Gaza coast: sea, sand, strip outline, aid truck. Slot 192x54."""
+    """Gaza coast: BIG aid truck, clear strip outline. Slot 192x54."""
     im, g = cv(192, 54, (224, 211, 178))
     # sea left, coastline diagonal
     PG(g, [(0, 0), (80, 0), (58, 54), (0, 54)], (146, 186, 214))
     LN(g, [(80, 0), (58, 54)], (240, 240, 235), w=1)
-    # Gaza strip outline (thin coastal strip)
-    PG(g, [(84, 4), (108, 4), (96, 50), (74, 50)], None, o=RED)
-    TXT(g, 112, 6, "GAZA", F5, INK_SOFT)
-    # aid truck on the road
-    tx, ty = 100, 36
-    R(g, tx, ty - 12, 34, 14, (245, 245, 240), o=(120, 120, 115))
-    R(g, tx + 34, ty - 8, 10, 10, (200, 205, 210), o=(120, 120, 115))
-    R(g, tx + 14, ty - 10, 6, 6, RED)
-    R(g, tx + 16, ty - 12, 2, 10, RED)
-    R(g, tx + 6, ty, 4, 6, (20, 20, 24))
-    R(g, tx + 26, ty, 4, 6, (20, 20, 24))
-    R(g, tx + 38, ty, 4, 6, (20, 20, 24))
+    # Gaza strip outline (tall coastal strip, right of the coast)
+    PG(g, [(126, 4), (156, 4), (146, 50), (118, 50)], None, o=RED)
+    TXT(g, 160, 8, "GAZA", F5, INK_SOFT)
+    # road band under the truck
+    R(g, 0, 40, 192, 10, (120, 118, 112))
+    # aid truck, BIG
+    tx, ty = 66, 38
+    R(g, tx, ty - 14, 44, 16, (245, 245, 240), o=(120, 120, 115))
+    R(g, tx + 44, ty - 10, 14, 12, (200, 205, 210), o=(120, 120, 115))
+    R(g, tx + 16, ty - 12, 8, 8, RED)
+    R(g, tx + 19, ty - 15, 2, 14, RED)
+    R(g, tx + 6, ty + 2, 6, 8, (20, 20, 24))
+    R(g, tx + 30, ty + 2, 6, 8, (20, 20, 24))
+    R(g, tx + 48, ty + 2, 6, 8, (20, 20, 24))
     # chip
-    CHIP(g, 30, 4, "3 KILLED", RED)
+    CHIP(g, 6, 3, "3 KILLED", RED)
     return im
 
 
