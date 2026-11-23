@@ -130,10 +130,12 @@ def draw_chip(d, x, y, s, fill):
 
 
 # ---------------------------------------------------------------- pixel art
-# Every scene is drawn on a low-res grid canvas (final size / 2) and pasted
-# back with Image.NEAREST, so the page shows crisp 2x2 blocks — the pixel
-# style the user approved on the v2 lead sample. Scene text uses bitmap
-# glyphs defined here (my own letterforms); page typography stays smooth.
+# v5: every drawing is made DIRECTLY at final slot resolution, 1x1 blocks,
+# no downscale — each placed pixel survives to the final image. The 12 card
+# scenes live in scenes.py (drawn at exact slot size); the lead is painted
+# here at 640x206 with its bitmap text at 2x (each glyph pixel a 2x2 block).
+# Scene text uses bitmap glyphs defined here (my own letterforms); page
+# typography stays smooth.
 FONT35 = {
     "0": ("111", "101", "101", "101", "111"),
     "1": ("010", "110", "010", "010", "111"),
@@ -191,6 +193,16 @@ FONT57 = {
     "U": ("10001", "10001", "10001", "10001", "10001", "10001", "01110"),
     "V": ("10001", "10001", "10001", "10001", "10001", "01010", "00100"),
     "Y": ("10001", "10001", "01010", "00100", "00100", "00100", "00100"),
+    "0": ("01110", "10001", "10011", "10101", "11001", "10001", "01110"),
+    "1": ("00100", "01100", "00100", "00100", "00100", "00100", "01110"),
+    "2": ("01110", "10001", "00001", "00110", "01000", "10000", "11111"),
+    "3": ("11111", "00010", "00100", "00010", "00001", "10001", "01110"),
+    "4": ("00010", "00110", "01010", "10010", "11111", "00010", "00010"),
+    "5": ("11111", "10000", "11110", "00001", "00001", "10001", "01110"),
+    "6": ("01110", "10001", "10000", "11110", "10001", "10001", "01110"),
+    "7": ("11111", "00001", "00010", "00100", "01000", "01000", "01000"),
+    "8": ("01110", "10001", "10001", "01110", "10001", "10001", "01110"),
+    "9": ("01110", "10001", "10001", "01111", "00001", "10001", "01110"),
     " ": ("00000", "00000", "00000", "00000", "00000", "00000", "00000"),
 }
 
@@ -238,6 +250,38 @@ def px_chip2(g, x, y, l1, l2, fill):
     return w
 
 
+def px2_text(g, x, y, s, font, color):
+    """Bitmap text at 2x: every glyph pixel is a 2x2 block placed directly
+    at final resolution (no downscale). Returns the width in final px."""
+    cx = x
+    for ch in s:
+        gl = font.get(ch, font[" "])
+        for ry, row in enumerate(gl):
+            for rx, bit in enumerate(row):
+                if bit == "1":
+                    g.rectangle([cx + rx * 2, y + ry * 2,
+                                 cx + rx * 2 + 1, y + ry * 2 + 1], fill=color)
+        cx += (len(gl[0]) + 1) * 2
+    return cx - x - 2
+
+
+def px2_text_w(s, font):
+    return sum((len(font.get(ch, font[" "])[0]) + 1) * 2 for ch in s) - 2
+
+
+def px2_text_c(g, cx, y, s, font, color):
+    return px2_text(g, cx - px2_text_w(s, font) // 2, y, s, font, color)
+
+
+def px2_chip(g, x, y, s, fill):
+    """Pixel chip at final resolution: 18px tall (the same height as the
+    old grid chips), FONT35 text at 2x, centred by pixel bbox."""
+    tw = px2_text_w(s, FONT35)
+    g.rounded_rectangle([x, y, x + tw + 7, y + 17], radius=2, fill=fill)
+    px2_text(g, x + 4, y + 4, s, FONT35, (255, 255, 255))
+    return tw + 8
+
+
 def px_canvas(w, h, bg):
     im = Image.new("RGB", (w, h), bg)
     return im, ImageDraw.Draw(im)
@@ -262,6 +306,15 @@ def px_glow(g, x0, y0, x1, y1, color):
                 g.point((xx, yy), fill=color)
 
 
+def px2_glow(g, x0, y0, x1, y1, color):
+    """Sparse deterministic glow at final resolution: 2x2 blocks on a 2px
+    grid (~1 in 17 positions)."""
+    for yy in range(y0, y1, 2):
+        for xx in range(x0, x1, 2):
+            if (xx * 7 + yy * 13) % 17 == 0:
+                g.rectangle([xx, yy, xx + 1, yy + 1], fill=color)
+
+
 def px_map(gw, gh, lon0, lon1, lat0, lat1, sea, land):
     """Region map rasterised straight onto a grid-size canvas."""
     im = Image.new("RGB", (gw, gh), sea)
@@ -280,12 +333,152 @@ def px_map(gw, gh, lon0, lon1, lat0, lat1, sea, land):
     return im
 
 
+def pixel_map(w, h, block, lon0, lon1, lat0, lat1, sea, land):
+    """World map rasterised into pixel blocks: drawn on a
+    (w/block)x(h/block) grid (antimeridian-split, like draw_land), upscaled
+    block x NEAREST and cropped to (w, h). Every placed block survives;
+    no smooth vector anywhere."""
+    gw = (w + block - 1) // block
+    gh = (h + block - 1) // block
+    im = Image.new("RGB", (gw, gh), sea)
+    dd = ImageDraw.Draw(im)
+    for ring in POLYS:
+        pts = []
+        prev_lon = None
+        for lon, lat in ring:
+            if prev_lon is not None and abs(lon - prev_lon) > 180:
+                if len(pts) >= 3:
+                    dd.polygon(pts, fill=land)
+                pts = []
+            pts.append(((lon - lon0) / (lon1 - lon0) * gw,
+                        (lat1 - lat) / (lat1 - lat0) * gh))
+            prev_lon = lon
+        if len(pts) >= 3:
+            dd.polygon(pts, fill=land)
+    up = im.resize((gw * block, gh * block), Image.NEAREST)
+    if up.size != (w, h):
+        up = up.crop((0, 0, w, h))
+    return up
+
+
+def px_pin(d, cx, cy, size, color, num, big):
+    """A pixel pin: a square block with a 1px outline and the number in a
+    bitmap font (FONT57 5x7 for big pins, FONT35 3x5 for small)."""
+    half = size // 2
+    d.rectangle([cx - half, cy - half, cx + half, cy + half],
+                fill=color, outline=INK)
+    font = FONT57 if big else FONT35
+    tw = px_text_w(str(num), font)
+    th = 7 if big else 5
+    px_text(d, cx - tw // 2, cy - th // 2, str(num), font, (255, 255, 255))
+
+
 def px_person(g, cx, top, skin, suit, hair, bald=False):
     """Seated delegate on the grid: head + shoulders."""
     g.rectangle([cx - 2, top, cx + 2, top + 3], fill=skin)
     if not bald:
         g.rectangle([cx - 2, top, cx + 2, top + 1], fill=hair)
     g.rectangle([cx - 4, top + 4, cx + 4, top + 7], fill=suit)
+
+
+def px2_person(g, cx, top, skin, suit, hair, bald=False):
+    """Seated delegate at final resolution: head + shoulders, the same
+    figure as px_person, each grid pixel a 2x2 block."""
+    g.rectangle([cx - 4, top, cx + 5, top + 7], fill=skin)
+    if not bald:
+        g.rectangle([cx - 4, top, cx + 5, top + 3], fill=hair)
+    g.rectangle([cx - 8, top + 8, cx + 9, top + 15], fill=suit)
+
+
+# Region legend icons: 9x9 pixel glyphs, one per region, drawn white on the
+# region bar. (My own glyphs.)
+REGION_ICONS = {
+    "ASIA": (
+        "111111111",
+        "000000000",
+        "011111110",
+        "001000100",
+        "001000100",
+        "001000100",
+        "001000100",
+        "001000100",
+        "001000100",
+    ),
+    "MIDDLE EAST": (
+        "000010000",
+        "000010000",
+        "000010000",
+        "000111000",
+        "001111100",
+        "011111110",
+        "011111110",
+        "000000000",
+        "111111111",
+    ),
+    "EUROPE": (
+        "011111110",
+        "000111000",
+        "000111000",
+        "000111000",
+        "000111000",
+        "000111000",
+        "000111000",
+        "000111000",
+        "011111110",
+    ),
+    "AFRICA": (
+        "000010000",
+        "000111000",
+        "001111100",
+        "001111100",
+        "011111110",
+        "011111110",
+        "111111111",
+        "111111111",
+        "000000000",
+    ),
+    "AMERICAS": (
+        "000010000",
+        "000111000",
+        "111111111",
+        "011111110",
+        "001111100",
+        "010111010",
+        "110000011",
+        "000000000",
+        "000000000",
+    ),
+    "OCEANIA": (
+        "000000000",
+        "001100110",
+        "011011011",
+        "110110110",
+        "110110110",
+        "011001100",
+        "000000000",
+        "000000000",
+        "000000000",
+    ),
+    "GLOBAL": (
+        "001111100",
+        "011111110",
+        "110101011",
+        "101110101",
+        "101011101",
+        "110101011",
+        "011111110",
+        "001111100",
+        "000000000",
+    ),
+}
+
+
+def draw_px_icon(d, x, y, rows, color):
+    """Draw a 9x9 pixel icon (1x1 blocks) at (x, y)."""
+    for ry, row in enumerate(rows):
+        for rx, bit in enumerate(row):
+            if bit == "1":
+                d.point((x + rx, y + ry), fill=color)
 
 
 def vgrad(w, h, top, bottom):
@@ -379,10 +572,11 @@ def place_pins(items, box):
 
 
 def _scene(d, box, name):
-    """Paste a pre-rendered high-res scene PNG into its slot (NEAREST).
+    """Paste a pre-rendered scene PNG into its slot.
 
-    The PNG is drawn at 2x the slot size by scenes.py; the single NEAREST
-    resize lands it at full slot resolution (1x1 pixels)."""
+    The PNG is drawn by scenes.py DIRECTLY at the slot size (1x1 blocks,
+    no downscale), so it is pasted as-is; the resize only fires if a size
+    ever drifts."""
     im = Image.open(os.path.join(HERE, "scenes", name)).convert("RGB")
     x0, y0, x1, y1 = box
     w, h = int(x1 - x0), int(y1 - y0)
@@ -406,114 +600,117 @@ def _person(d, cx, top, s, skin, suit, hair, bald=False):
 
 
 def paint_lead(d, box):
-    """COP31 plenary hall, Antalya — pixel art (320x103 grid, 2x NEAREST)."""
-    im, g = px_canvas(320, 103, (22, 40, 58))
+    """COP31 plenary hall, Antalya — pixel art drawn DIRECTLY at 640x206,
+    1x1 blocks (v5: no grid canvas, no downscale). Same composition as v4,
+    finer grid: thin clock hands, a bigger gavel and globe, more varied
+    delegates and desk flags. Bitmap text at 2x (each glyph pixel a 2x2
+    block)."""
+    x0, y0, x1, y1 = box
+    im = Image.new("RGB", (640, 206), (22, 40, 58))
+    g = ImageDraw.Draw(im)
     # ceiling band + gold line
-    g.rectangle([0, 0, 320, 5], fill=(30, 48, 68))
-    g.rectangle([0, 5, 320, 5], fill=(201, 168, 106))
+    g.rectangle([0, 0, 639, 11], fill=(30, 48, 68))
+    g.rectangle([0, 10, 639, 11], fill=(201, 168, 106))
     # side drapes with folds
-    for dx0 in (0, 309):
-        g.rectangle([dx0, 0, dx0 + 10, 103], fill=(56, 32, 36))
-        g.rectangle([dx0 + 3, 0, dx0 + 4, 103], fill=(78, 46, 50))
-        g.rectangle([dx0 + 7, 0, dx0 + 8, 103], fill=(78, 46, 50))
-    # warm glow behind the screen: sparse gold dots
-    px_glow(g, 100, 8, 220, 42, (255, 190, 110))
+    for dx0 in (0, 620):
+        g.rectangle([dx0, 0, dx0 + 19, 205], fill=(56, 32, 36))
+        g.rectangle([dx0 + 6, 0, dx0 + 9, 205], fill=(78, 46, 50))
+        g.rectangle([dx0 + 14, 0, dx0 + 17, 205], fill=(78, 46, 50))
+    # warm glow behind the screen: sparse gold blocks
+    px2_glow(g, 200, 16, 440, 84, (255, 190, 110))
     # chandelier, two tiers, top centre
-    cx = 160
-    g.rectangle([cx, 1, cx, 6], fill=(201, 168, 106))
-    g.rectangle([cx - 20, 7, cx + 20, 7], fill=(201, 168, 106))
-    for dx in (-18, -9, 0, 9, 18):
-        g.rectangle([cx + dx - 1, 5, cx + dx + 1, 7], fill=(255, 217, 122))
-    g.rectangle([cx - 12, 8, cx - 12, 11], fill=(201, 168, 106))
-    g.rectangle([cx + 12, 8, cx + 12, 11], fill=(201, 168, 106))
-    g.rectangle([cx - 30, 12, cx + 30, 12], fill=(201, 168, 106))
-    for dx in (-28, -19, -10, 0, 10, 19, 28):
-        g.rectangle([cx + dx - 1, 10, cx + dx + 1, 12], fill=(255, 217, 122))
-        g.rectangle([cx + dx, 13, cx + dx, 15], fill=(255, 225, 150))
-    g.rectangle([cx - 2, 4, cx + 2, 6], fill=(255, 217, 122))
-    # wall clock, top left
-    ccx, ccy = 24, 14
-    g.ellipse([ccx - 6, ccy - 6, ccx + 6, ccy + 6], fill=(238, 232, 214),
-              outline=(120, 100, 70))
-    g.rectangle([ccx - 1, ccy - 5, ccx + 1, ccy - 3], fill=(120, 100, 70))
-    g.rectangle([ccx - 1, ccy + 3, ccx + 1, ccy + 5], fill=(120, 100, 70))
-    g.rectangle([ccx - 5, ccy - 1, ccx - 3, ccy + 1], fill=(120, 100, 70))
-    g.rectangle([ccx + 3, ccy - 1, ccx + 5, ccy + 1], fill=(120, 100, 70))
-    g.rectangle([ccx, ccy - 2, ccx + 3, ccy], fill=INK)
-    g.rectangle([ccx, ccy - 4, ccx, ccy], fill=INK)
-    px_text_c(g, ccx, ccy + 8, "OVERTIME", FONT35, (232, 220, 192))
+    cx = 320
+    g.rectangle([319, 2, 320, 13], fill=(201, 168, 106))
+    g.rectangle([280, 14, 361, 15], fill=(201, 168, 106))
+    for dx in (-36, -18, 0, 18, 36):
+        g.rectangle([cx + dx - 2, 10, cx + dx + 3, 15], fill=(255, 217, 122))
+    g.rectangle([296, 16, 297, 23], fill=(201, 168, 106))
+    g.rectangle([342, 16, 343, 23], fill=(201, 168, 106))
+    g.rectangle([260, 24, 381, 25], fill=(201, 168, 106))
+    for dx in (-56, -38, -20, 0, 20, 38, 56):
+        g.rectangle([cx + dx - 2, 20, cx + dx + 3, 25], fill=(255, 217, 122))
+        g.rectangle([cx + dx, 26, cx + dx + 1, 31], fill=(255, 225, 150))
+        g.point((cx + dx, 32), fill=(255, 225, 150))
+    g.rectangle([316, 8, 325, 13], fill=(255, 217, 122))
+    # wall clock, top left — thin hands so they read as hands, not a blob.
+    # Centred at x=56 so the OVERTIME label clears the left drape.
+    ccx, ccy = 56, 28
+    g.ellipse([44, 16, 69, 41], fill=(238, 232, 214), outline=(120, 100, 70))
+    for tx, ty in [(54, 18), (54, 34), (46, 26), (62, 26)]:
+        g.rectangle([tx, ty, tx + 5, ty + 5], fill=(120, 100, 70))
+    g.line([(ccx, ccy), (ccx, ccy - 9)], fill=INK, width=2)
+    g.line([(ccx, ccy), (ccx + 7, ccy - 3)], fill=INK, width=2)
+    g.point((ccx, ccy), fill=INK)
+    px2_text_c(g, ccx, 44, "OVERTIME", FONT35, (232, 220, 192))
     # big screen: the pact, no consensus
-    sx0, sy0, sx1, sy1 = 107, 16, 213, 38
-    g.rectangle([sx0, sy0, sx1, sy1], fill=(13, 26, 38), outline=(201, 168, 106))
-    px_text_c(g, 160, 19, "ANTALYA PACT", FONT57, (232, 220, 192))
-    g.rectangle([sx0 + 8, 28, sx1 - 8, 28], fill=(120, 100, 70))
-    px_text_c(g, 160, 30, "NO CONSENSUS", FONT57, (224, 82, 68))
-    # podium with gold trim, globe on its front, gavel on top
-    px0, px1, py0, py1 = 134, 186, 41, 57
-    g.polygon([(px0, py1), (px0 + 4, py0), (px1 - 4, py0), (px1, py1)],
-              fill=(107, 74, 47))
-    g.rectangle([px0 - 3, py0 - 2, px1 + 3, py0], fill=(84, 58, 36))
-    g.rectangle([px0 + 2, py0 + 5, px1 - 2, py0 + 5], fill=(201, 168, 106))
-    gx, gy = 160, py0 + 11
-    g.ellipse([gx - 5, gy - 5, gx + 5, gy + 5], fill=(127, 176, 216),
+    g.rectangle([214, 32, 427, 77], fill=(13, 26, 38), outline=(201, 168, 106))
+    px2_text_c(g, 320, 38, "ANTALYA PACT", FONT57, (232, 220, 192))
+    g.rectangle([230, 56, 411, 57], fill=(120, 100, 70))
+    px2_text_c(g, 320, 60, "NO CONSENSUS", FONT57, (224, 82, 68))
+    # podium with gold trim; globe on its front, gavel on the front-left
+    # (moved off the top: the old gavel overlapped the screen text)
+    g.polygon([(268, 114), (276, 82), (364, 82), (372, 114)], fill=(107, 74, 47))
+    g.rectangle([262, 78, 379, 83], fill=(84, 58, 36))
+    g.rectangle([272, 92, 369, 93], fill=(201, 168, 106))
+    gx, gy = 320, 100
+    g.ellipse([gx - 13, gy - 13, gx + 13, gy + 13], fill=(127, 176, 216),
               outline=(232, 220, 192))
-    g.rectangle([gx - 3, gy - 3, gx - 1, gy - 1], fill=(240, 240, 230))
-    g.rectangle([gx + 1, gy + 1, gx + 3, gy + 3], fill=(240, 240, 230))
-    # gavel: bold gold handle + head on the podium top
-    g.rectangle([px0 + 6, py0 - 6, px0 + 22, py0 - 5], fill=(201, 168, 106))
-    g.rectangle([px0 + 20, py0 - 9, px0 + 27, py0 - 6], fill=(201, 168, 106))
-    g.rectangle([px0 + 8, py0 - 4, px0 + 11, py0 - 2], fill=(84, 58, 36))
+    g.rectangle([gx - 8, gy - 8, gx - 2, gy - 2], fill=(240, 240, 230))
+    g.rectangle([gx + 2, gy + 2, gx + 8, gy + 8], fill=(240, 240, 230))
+    # gavel: handle + head + sound block, on the podium front-left
+    g.rectangle([272, 97, 296, 100], fill=(201, 168, 106))
+    g.rectangle([290, 92, 302, 102], fill=(201, 168, 106))
+    g.rectangle([291, 104, 301, 107], fill=(84, 58, 36))
     # delegate rows: desks + figures, jittered and varied
     skins = [(198, 164, 132), (172, 128, 96), (214, 182, 150), (150, 108, 82),
              (226, 196, 164)]
     suits = [(30, 44, 66), (52, 52, 56), (44, 62, 48), (86, 42, 44),
              (38, 38, 44), (66, 54, 40), (70, 60, 90)]
     hairs = [(30, 22, 16), (70, 70, 70), (160, 160, 160), (20, 20, 20)]
-    for ri, (dy, n) in enumerate([(58, 7), (72, 8), (88, 9)]):
-        g.rectangle([12, dy, 308, dy + 4], fill=(58, 44, 32))
-        g.rectangle([12, dy, 308, dy], fill=(120, 96, 66))
+    for ri, (dy, n) in enumerate([(116, 7), (144, 8), (176, 9)]):
+        g.rectangle([24, dy, 617, dy + 9], fill=(58, 44, 32))
+        g.rectangle([24, dy, 617, dy + 1], fill=(120, 96, 66))
         for i in range(n):
-            jx = (i * 13 + ri * 7) % 5 - 2
-            fx = int(12 + (i + 0.5) * 296 / n) + jx
+            jx = ((i * 13 + ri * 7) % 5 - 2) * 2
+            fx = int(24 + (i + 0.5) * 592 / n) + jx
             k = (ri * 7 + i * 3) % 5
-            top = dy - 8
-            px_person(g, fx, top, skins[k], suits[(ri * 5 + i) % 7],
-                      hairs[(ri + i) % 4], bald=((ri + i) % 6 == 0))
+            top = dy - 16
+            px2_person(g, fx, top, skins[k], suits[(ri * 5 + i) % 7],
+                       hairs[(ri + i) % 4], bald=((ri + i) % 6 == 0))
             if (ri * 3 + i) % 5 == 0:
-                g.rectangle([fx + 5, top + 2, fx + 6, top + 6], fill=skins[k])
-                g.rectangle([fx + 5, top - 1, fx + 7, top + 1], fill=skins[k])
+                g.rectangle([fx + 10, top + 4, fx + 13, top + 13], fill=skins[k])
+                g.rectangle([fx + 10, top - 2, fx + 15, top + 3], fill=skins[k])
             m = (ri + i) % 4
             if m == 0:
-                g.rectangle([fx - 5, dy + 1, fx - 2, dy + 3], fill=(238, 232, 214))
-                g.rectangle([fx + 1, dy + 1, fx + 5, dy + 3], fill=(150, 190, 210))
+                g.rectangle([fx - 10, dy + 2, fx - 3, dy + 7], fill=(238, 232, 214))
+                g.rectangle([fx + 2, dy + 2, fx + 11, dy + 7], fill=(150, 190, 210))
             elif m == 1:
-                g.rectangle([fx - 5, dy + 1, fx - 2, dy + 3], fill=(238, 232, 214))
-                g.rectangle([fx + 2, dy + 1, fx + 4, dy + 3], fill=(200, 220, 235))
+                g.rectangle([fx - 10, dy + 2, fx - 3, dy + 7], fill=(238, 232, 214))
+                g.rectangle([fx + 4, dy + 2, fx + 9, dy + 7], fill=(200, 220, 235))
             elif m == 2:
-                g.rectangle([fx + 5, dy - 4, fx + 8, dy - 1], fill=(43, 94, 167))
-                g.rectangle([fx + 6, dy - 3, fx + 7, dy - 2], fill=(255, 217, 0))
+                g.rectangle([fx + 10, dy - 8, fx + 17, dy - 1], fill=(43, 94, 167))
+                g.rectangle([fx + 12, dy - 6, fx + 15, dy - 3], fill=(255, 217, 0))
             else:
-                g.rectangle([fx - 6, dy + 1, fx - 3, dy + 3], fill=(150, 190, 210))
-                g.rectangle([fx, dy + 1, fx + 4, dy + 3], fill=(238, 232, 214))
+                g.rectangle([fx - 12, dy + 2, fx - 5, dy + 7], fill=(150, 190, 210))
+                g.rectangle([fx, dy + 2, fx + 9, dy + 7], fill=(238, 232, 214))
     # two standing objectors at the edges, arms raised
-    for sx, flip, suit in ((16, 1, (30, 44, 66)), (304, -1, (86, 42, 44))):
-        by = 92
-        g.rectangle([sx - 2, by - 16, sx + 2, by - 12], fill=(198, 164, 132))
-        g.rectangle([sx - 2, by - 16, sx + 2, by - 15], fill=(30, 22, 16))
-        g.rectangle([sx - 4, by - 11, sx + 4, by], fill=suit)
-        ax0, ax1 = sorted((sx + flip * 4, sx + flip * 5))
-        g.rectangle([ax0, by - 19, ax1, by - 11], fill=(198, 164, 132))
-        hx0, hx1 = sorted((sx + flip * 4, sx + flip * 6))
-        g.rectangle([hx0, by - 20, hx1, by - 19], fill=(198, 164, 132))
-    # floor strip, then warm reflection dots on it under the podium
-    g.rectangle([0, 97, 320, 103], fill=(58, 42, 28))
-    g.rectangle([0, 97, 320, 97], fill=(140, 112, 78))
-    px_glow(g, 130, 98, 190, 102, (255, 190, 110))
+    for sx, flip, suit in ((32, 1, (30, 44, 66)), (608, -1, (86, 42, 44))):
+        by = 184
+        g.rectangle([sx - 4, by - 32, sx + 5, by - 23], fill=(198, 164, 132))
+        g.rectangle([sx - 4, by - 32, sx + 5, by - 29], fill=(30, 22, 16))
+        g.rectangle([sx - 8, by - 22, sx + 9, by + 1], fill=suit)
+        ax0, ax1 = sorted((sx + flip * 8, sx + flip * 11))
+        g.rectangle([ax0, by - 38, ax1, by - 21], fill=(198, 164, 132))
+        hx0, hx1 = sorted((sx + flip * 8, sx + flip * 13))
+        g.rectangle([hx0, by - 40, hx1, by - 37], fill=(198, 164, 132))
+    # floor strip, then warm reflection blocks under the podium
+    g.rectangle([0, 194, 639, 205], fill=(58, 42, 28))
+    g.rectangle([0, 194, 639, 195], fill=(140, 112, 78))
+    px2_glow(g, 260, 196, 380, 204, (255, 190, 110))
     # NO DEAL chip, top right (pixel chip, same 18px height as the rest)
-    px_chip(g, 320 - 8 - (px_text_w("NO DEAL", FONT35) + 7), 8, "NO DEAL", RED)
-    px_paste(d, box, im)
-
-
+    px2_chip(g, 640 - 16 - (px2_text_w("NO DEAL", FONT35) + 8), 16,
+             "NO DEAL", RED)
+    d._image.paste(im, (int(x0), int(y0)))
 def paint_drones(d, box):
     """Night over Ukraine — pre-rendered high-res pixel scene (scenes.py)."""
     _scene(d, box, "drones.png")
@@ -895,10 +1092,10 @@ def build():
                 "Everything on this page happened, or was first reported, "
                 "on Sunday 22 November 2026.",
                 PT(13, "Italic"), INK_SOFT)
-    # region bar
+    # region bar — each segment gets a 9x9 pixel icon before its label
     labels = []
     for name, n, col in REGIONS:
-        labels.append((name, n, col, tracked_w(d, "%s %d" % (name, n), IN(9), 1.0) + 14))
+        labels.append((name, n, col, tracked_w(d, "%s %d" % (name, n), IN(9), 1.0) + 14 + 15))
     total = 992
     raw = [max(lw, total * n / 42.0) for _, n, _, lw in labels]
     scale = total / sum(raw)
@@ -906,8 +1103,11 @@ def build():
     x = 16
     for (name, n, col, _), wd in zip(labels, widths):
         d.rectangle([x, 122, x + wd, 142], fill=col)
-        draw_tracked_c(d, x + wd / 2, 128, "%s %d" % (name, n), IN(9),
-                       (255, 255, 255), 1.0)
+        tw = tracked_w(d, "%s %d" % (name, n), IN(9), 1.0)
+        ix = x + (wd - (9 + 6 + tw)) / 2
+        draw_px_icon(d, int(ix), 127, REGION_ICONS[name], (255, 255, 255))
+        draw_tracked(d, ix + 15, 128, "%s %d" % (name, n), IN(9),
+                     (255, 255, 255), 1.0)
         x += wd
     # lead art + side cards 2 and 3
     paint_lead(d, (16, 148, 656, 354))
@@ -935,31 +1135,27 @@ def build():
         draw_card(d, 16 + i * 200, 486, 192, 150, s)
     for i, s in enumerate(CARDS[7:12]):
         draw_card(d, 16 + i * 200, 642, 192, 150, s)
+    # divider ornament between the card rows and the map section
+    d.line([16, 796, 1008, 796], fill=(201, 168, 106), width=1)
+    d.polygon([(512, 793), (515, 796), (512, 799), (509, 796)],
+              fill=(201, 168, 106))
+    d.rectangle([500, 795, 501, 796], fill=(201, 168, 106))
+    d.rectangle([523, 795, 524, 796], fill=(201, 168, 106))
     # map + index header
     draw_tracked(d, 16, 800, "ALSO ON SUNDAY 22 NOVEMBER", IN(11), INK, 1.2)
     rw = tracked_w(d, "29 MORE STORIES · NUMBERS 14–42 · DOTS ON THE MAP", IN(8), 0.8)
     draw_tracked(d, 1008 - rw, 801, "29 MORE STORIES · NUMBERS 14–42 · DOTS ON THE MAP",
                  IN(8), GREY, 0.8)
-    # map
+    # map — fully pixelated: rasterised into 4px blocks, then pasted
     mapbox = (16, 816, 396, 954)
-    d.rectangle(mapbox, fill=SEA)
+    mw, mh = int(mapbox[2] - mapbox[0]), int(mapbox[3] - mapbox[1])
+    d._image.paste(pixel_map(mw, mh, 4, -180, 180, -60, 85, SEA, LAND),
+                   (int(mapbox[0]), int(mapbox[1])))
     # project with lat range -60..85 so Antarctica stays out
     def proj2(lon, lat):
         x0, y0, x1, y1 = mapbox
         return (x0 + (lon + 180.0) / 360.0 * (x1 - x0),
                 y0 + (85.0 - lat) / 145.0 * (y1 - y0))
-    for ring in POLYS:
-        pts = []
-        prev_lon = None
-        for lon, lat in ring:
-            if prev_lon is not None and abs(lon - prev_lon) > 180:
-                if len(pts) >= 3:
-                    d.polygon(pts, fill=LAND)
-                pts = []
-            pts.append(proj2(lon, lat))
-            prev_lon = lon
-        if len(pts) >= 3:
-            d.polygon(pts, fill=LAND)
     d.rectangle(mapbox, outline=INK, width=1)
     # pins: cards 1-13 big, index 14-42 small
     pins = []
@@ -968,11 +1164,11 @@ def build():
         pins.append((s["num"], s["lon"], s["lat"], RCOL[s["region"]], True))
     for num, city, region, head, src, lon, lat in INDEX:
         pins.append((num, lon, lat, RCOL[region], False))
-    # de-collision in projected space
+    # de-collision in projected space (radii match the pixel-pin halves)
     placed, final = [], []
     for num, lon, lat, col, big in pins:
         x, y = proj2(lon, lat)
-        r = 7 if big else 5
+        r = 7 if big else 6
         done = False
         for ox, oy in [(0, 0), (10, 0), (-10, 0), (0, 10), (0, -10),
                        (10, 10), (-10, -10), (10, -10), (-10, 10),
@@ -988,10 +1184,15 @@ def build():
             placed.append((x, y, r))
             final.append((num, x, y, col, big))
     for num, x, y, col, big in final:
-        r = 7 if big else 5
-        num_disc(d, x, y, r, col, num, 8 if big else 7)
-    d.text((20, 938), "Big dots 1–13 · small dots 14–42", font=PT(8, "Italic"),
-           fill=(60, 70, 80))
+        px_pin(d, x, y, 13 if big else 11, col, num, big)
+    # map caption with pixel pin icons
+    cap1 = "dots 1–13"
+    cap2 = "dots 14–42"
+    d.rectangle([20, 940, 28, 948], fill=RED, outline=INK)
+    d.text((34, 938), cap1, font=PT(8, "Italic"), fill=(60, 70, 80))
+    x2 = 34 + d.textlength(cap1, font=PT(8, "Italic")) + 8
+    d.rectangle([x2, 941, x2 + 6, 947], fill=(120, 120, 120), outline=INK)
+    d.text((x2 + 11, 938), cap2, font=PT(8, "Italic"), fill=(60, 70, 80))
     # index, two columns
     cols = [(408, 700), (712, 1008)]
     for ci, (cx0, cx1) in enumerate(cols):
