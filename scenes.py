@@ -346,7 +346,7 @@ def scene_bahrain():
 
 
 def scene_hk():
-    """Hong Kong at dusk: skyline, water, ballot box. Slot 192x54."""
+    """Hong Kong at dusk: BIG Bank of China tower, ballot box. Slot 192x54."""
     im, g = cv(192, 54, (255, 176, 110))
     # dusk bands: orange, checkerboard seam, purple, water
     for yy in range(16, 28):
@@ -356,53 +356,55 @@ def scene_hk():
     R(g, 0, 28, 192, 8, (74, 52, 104))
     R(g, 0, 38, 192, 16, (46, 64, 96))
     # sun, top right
-    R(g, 158, 6, 8, 8, (255, 214, 140))
-    # skyline silhouettes
-    for fx, fh, fw in [(0, 18, 20), (22, 22, 18), (42, 16, 20), (64, 30, 18),
-                       (84, 20, 18), (104, 24, 20), (126, 18, 18),
-                       (146, 22, 20), (168, 16, 24)]:
+    R(g, 178, 4, 8, 8, (255, 214, 140))
+    # flanking towers (shorter, dark, lit windows)
+    for fx, fh, fw in [(0, 18, 20), (22, 22, 18), (132, 20, 18),
+                       (152, 16, 20), (174, 22, 18)]:
         R(g, fx, 38 - fh, fw, fh, (42, 36, 56))
-    # Bank of China: triangular top with a gold spine
-    PG(g, [(76, 30), (86, 8), (96, 30)], (42, 36, 56))
-    R(g, 86, 8, 1, 22, (255, 214, 140))
-    # lit windows
-    for wx, wy in [(10, 24), (28, 20), (48, 26), (70, 18), (92, 24),
-                   (112, 20), (132, 26), (152, 22), (176, 24), (36, 30),
-                   (116, 30), (160, 30), (20, 28), (60, 22), (100, 28),
-                   (140, 24), (170, 28)]:
+    # Bank of China tower, BIG and central: triangular X-brace structure
+    PG(g, [(64, 38), (96, 4), (128, 38)], (42, 36, 56))
+    LN(g, [(70, 32), (122, 12)], (255, 214, 140), w=1)
+    LN(g, [(122, 32), (70, 12)], (255, 214, 140), w=1)
+    LN(g, [(78, 24), (114, 10)], (255, 214, 140), w=1)
+    LN(g, [(114, 24), (78, 10)], (255, 214, 140), w=1)
+    R(g, 95, 4, 2, 34, (255, 214, 140))
+    # lit windows on flanking towers
+    for wx, wy in [(10, 24), (28, 20), (138, 26), (158, 26), (180, 22),
+                   (36, 30), (136, 30), (162, 30), (184, 28)]:
         P(g, wx, wy, (255, 214, 140))
     # water glints
     for wx in (20, 68, 116, 164):
         R(g, wx, 50, 15, 1, (255, 214, 140))
-    # ballot box, front right
-    R(g, 138, 30, 26, 18, (245, 242, 235), o=(120, 110, 95))
-    R(g, 144, 32, 14, 1, INK)
-    for i in range(16):
-        P(g, 154 + i, 16 + i, RED)
-    for i in range(20):
-        P(g, 164 + i, 30 - i, RED)
+    # ballot box, BIG front right, with a big red check above it
+    R(g, 140, 32, 34, 18, (245, 242, 235), o=(120, 110, 95))
+    R(g, 147, 34, 20, 2, INK)
+    LN(g, [(146, 24), (156, 34)], RED, w=2)
+    LN(g, [(156, 34), (174, 10)], RED, w=2)
     # turnout chip
-    CHIP(g, 30, 4, "98.79%", DARK)
+    CHIP(g, 6, 3, "98.79%", DARK)
     return im
 
 
 def scene_cricket():
-    """Wellington: green outfield, pitch, stumps, bat and ball. Slot 192x54."""
+    """Wellington: BIG pitch, stumps, bat and ball. Slot 192x54."""
     im, g = cv(192, 54, (58, 122, 66))
     EL(g, -20, -30, 212, 84, None, o=(230, 235, 220))
-    # pitch strip
-    R(g, 58, 4, 76, 46, (196, 172, 120))
-    R(g, 58, 4, 1, 46, (245, 242, 235))
-    R(g, 134, 4, 1, 46, (245, 242, 235))
-    # stumps + bails
-    for dx in (0, 4, 8):
-        R(g, 70 + dx, 12, 2, 14, (240, 210, 90))
-    R(g, 70, 10, 9, 2, (240, 210, 90))
-    # bat + ball
-    PG(g, [(100, 18), (108, 16), (120, 34), (112, 36)], (150, 105, 60))
-    R(g, 102, 8, 2, 10, (150, 105, 60))
-    R(g, 130, 40, 4, 4, (178, 34, 34))
-    P(g, 130, 40, WHITE)
+    # pitch strip, BIG and horizontal
+    R(g, 16, 14, 160, 28, (196, 172, 120))
+    R(g, 16, 14, 1, 28, (245, 242, 235))
+    R(g, 176, 14, 1, 28, (245, 242, 235))
+    R(g, 16, 26, 160, 1, (245, 242, 235))
+    # stumps + bails, BIG at the left end
+    for dx in (0, 5, 10):
+        R(g, 28 + dx, 16, 3, 18, (240, 210, 90))
+    R(g, 28, 14, 13, 2, (240, 210, 90))
+    # bat, BIG diagonal
+    PG(g, [(84, 40), (92, 38), (118, 10), (110, 8)], (150, 105, 60))
+    R(g, 108, 4, 3, 8, (150, 105, 60))
+    # ball, BIG red
+    EL(g, 140, 32, 152, 44, (178, 34, 34), o=WHITE)
+    P(g, 146, 32, WHITE)
+    P(g, 146, 44, WHITE)
     # scoreboard chip top right
     CHIP(g, 192 - 6 - (TXT_W("720/9", F5) + 8), 4, "720/9", DARK)
     TXT(g, 6, 44, "RECORD TOTAL", F7, (235, 235, 225))
@@ -410,91 +412,97 @@ def scene_cricket():
 
 
 def scene_f1():
-    """Las Vegas at night: Stratosphere, hotel blocks, track, car. Slot 192x54."""
+    """Las Vegas at night: BIG open-wheel car, Stratosphere. Slot 192x54."""
     im, g = cv(192, 54, (12, 18, 40))
     R(g, 0, 20, 192, 16, (30, 26, 52))
-    # Stratosphere needle
-    PG(g, [(20, 38), (22, 6), (26, 38)], (30, 26, 52))
-    R(g, 18, 4, 9, 4, (255, 190, 90))
+    # Stratosphere needle (clear of the chip, right of it)
+    PG(g, [(106, 38), (111, 4), (118, 38)], (70, 64, 100))
+    R(g, 104, 2, 16, 4, (255, 190, 90))
     # hotel blocks with lit windows
-    for fx, fh, fw in [(38, 18, 26), (70, 14, 24), (96, 22, 30),
-                       (130, 16, 24), (158, 20, 26)]:
+    for fx, fh, fw in [(34, 16, 24), (64, 12, 22), (140, 14, 24),
+                       (168, 18, 24)]:
         R(g, fx, 38 - fh, fw, fh, (36, 30, 60))
-        for wy in range(3):
+        for wy in range(2):
             for wx in range(3):
                 P(g, fx + 4 + wx * 8, 38 - fh + 4 + wy * 6, (255, 200, 110))
     # track
     R(g, 0, 38, 192, 16, (52, 52, 58))
     for tx in range(12):
         R(g, tx * 16, 46, 8, 1, (240, 240, 235))
-    # race car
-    cx, cy = 100, 42
-    R(g, cx - 26, cy - 6, 54, 10, (178, 34, 34))
-    PG(g, [(cx - 30, cy - 8), (cx - 22, cy - 8), (cx - 20, cy - 4),
-           (cx - 30, cy - 4)], (120, 20, 20))
-    R(g, cx - 20, cy, 10, 8, (15, 15, 18))
-    R(g, cx + 10, cy, 10, 8, (15, 15, 18))
-    R(g, cx - 2, cy - 8, 10, 6, (30, 30, 36))
+    # BIG open-wheel race car (centre), side profile
+    R(g, 50, 24, 4, 16, (120, 20, 20))
+    R(g, 44, 22, 16, 4, (178, 34, 34))
+    R(g, 44, 30, 16, 3, (178, 34, 34))
+    R(g, 130, 42, 14, 3, (178, 34, 34))
+    PG(g, [(56, 38), (128, 38), (132, 44), (56, 44)], (178, 34, 34))
+    PG(g, [(84, 38), (92, 28), (96, 38)], (178, 34, 34))
+    R(g, 72, 34, 22, 6, (150, 28, 28))
+    EL(g, 96, 32, 106, 42, (20, 20, 24), o=WHITE)
+    EL(g, 58, 40, 74, 53, (15, 15, 18), o=(120, 120, 115))
+    EL(g, 64, 46, 68, 50, (180, 180, 175))
+    EL(g, 112, 40, 128, 53, (15, 15, 18), o=(120, 120, 115))
+    EL(g, 118, 46, 122, 50, (180, 180, 175))
     # checkered flag
-    fx0, fy0 = 170, 6
+    fx0, fy0 = 172, 4
     for r in range(3):
         for c in range(4):
             if (r + c) % 2 == 0:
                 R(g, fx0 + c * 4, fy0 + r * 4, 4, 4, (20, 20, 20))
     R(g, fx0, fy0, 1, 22, (220, 220, 215))
     # chip
-    CHIP(g, 30, 4, "35 LEAD CHANGES", DARK)
+    CHIP(g, 6, 3, "35 LEAD CHANGES", DARK)
     return im
 
 
 def scene_tennis():
-    """Turin: blue court, net, ball, trophy. Slot 192x54."""
+    """Turin: BIG net, ball and trophy on a blue court. Slot 192x54."""
     im, g = cv(192, 54, (47, 111, 178))
     R(g, 8, 6, 176, 42, None, o=(240, 240, 235))
-    R(g, 8, 26, 176, 1, (240, 240, 235))
-    R(g, 62, 6, 1, 42, (240, 240, 235))
-    R(g, 130, 6, 1, 42, (240, 240, 235))
-    # net
-    R(g, 8, 22, 176, 6, (235, 235, 228))
+    R(g, 8, 26, 176, 2, (240, 240, 235))
+    R(g, 62, 6, 2, 42, (240, 240, 235))
+    R(g, 130, 6, 2, 42, (240, 240, 235))
+    # net, BIG across the middle: white top tape + mesh
+    R(g, 8, 20, 176, 10, (235, 235, 228))
+    R(g, 8, 20, 176, 3, (255, 255, 255))
     for nx in range(16, 176, 8):
-        R(g, nx, 22, 1, 6, (120, 120, 115))
-    R(g, 6, 20, 4, 10, (30, 30, 34))
-    R(g, 182, 20, 4, 10, (30, 30, 34))
-    # ball
-    EL(g, 40, 10, 52, 22, (204, 255, 0), o=WHITE)
-    P(g, 46, 10, WHITE)
-    P(g, 46, 22, WHITE)
-    # trophy
-    tx, ty = 158, 34
-    PG(g, [(tx - 10, ty - 12), (tx + 10, ty - 12), (tx + 6, ty + 2),
-           (tx - 6, ty + 2)], (212, 175, 55))
-    R(g, tx - 14, ty - 12, 4, 8, (212, 175, 55))
-    R(g, tx + 10, ty - 12, 4, 8, (212, 175, 55))
-    R(g, tx, ty + 2, 1, 8, (212, 175, 55))
-    R(g, tx - 8, ty + 10, 16, 4, (212, 175, 55))
+        R(g, nx, 23, 1, 7, (120, 120, 115))
+    R(g, 6, 18, 4, 14, (30, 30, 34))
+    R(g, 182, 18, 4, 14, (30, 30, 34))
+    # ball, BIG lime
+    EL(g, 38, 6, 56, 24, (204, 255, 0), o=WHITE)
+    P(g, 47, 6, WHITE)
+    P(g, 47, 24, WHITE)
+    # trophy, BIG gold at right
+    tx, ty = 158, 36
+    PG(g, [(tx - 12, ty - 14), (tx + 12, ty - 14), (tx + 7, ty + 2),
+           (tx - 7, ty + 2)], (212, 175, 55))
+    R(g, tx - 17, ty - 14, 5, 10, (212, 175, 55))
+    R(g, tx + 12, ty - 14, 5, 10, (212, 175, 55))
+    R(g, tx - 1, ty + 2, 2, 8, (212, 175, 55))
+    R(g, tx - 10, ty + 10, 20, 4, (212, 175, 55))
     TXT(g, 6, 44, "MAIDEN TITLE", F7, (235, 235, 225))
     return im
 
 
 def scene_football():
-    """Anfield: green pitch, goal, ball, 4-0. Slot 192x54."""
+    """Anfield: BIG goal with net, ball, centre circle. Slot 192x54."""
     im, g = cv(192, 54, (46, 125, 62))
     R(g, 6, 4, 180, 46, None, o=(240, 240, 235))
-    R(g, 96, 4, 1, 46, (240, 240, 235))
-    EL(g, 84, 16, 108, 40, None, o=(240, 240, 235))
+    R(g, 96, 4, 2, 46, (240, 240, 235))
+    EL(g, 82, 14, 112, 42, None, o=(240, 240, 235))
     R(g, 6, 16, 44, 22, None, o=(240, 240, 235))
     R(g, 142, 16, 44, 22, None, o=(240, 240, 235))
-    # goal + net
-    gx0, gy0 = 150, 16
-    R(g, gx0, gy0, 30, 20, None, o=WHITE)
-    for i in range(1, 4):
-        R(g, gx0 + i * 8, gy0, 1, 20, (220, 220, 215))
-        R(g, gx0, gy0 + i * 6, 30, 1, (220, 220, 215))
-    # ball
-    EL(g, 74, 28, 86, 40, (250, 250, 245), o=(30, 30, 30))
-    R(g, 78, 32, 4, 4, (30, 30, 30))
+    # goal, BIG with a clear net (right)
+    gx0, gy0 = 138, 10
+    R(g, gx0, gy0, 48, 32, None, o=WHITE)
+    for i in range(1, 6):
+        R(g, gx0 + i * 8, gy0, 2, 32, (220, 220, 215))
+        R(g, gx0, gy0 + i * 6, 48, 2, (220, 220, 215))
+    # ball, BIG
+    EL(g, 70, 26, 88, 44, (250, 250, 245), o=(30, 30, 30))
+    R(g, 77, 32, 6, 6, (30, 30, 30))
     # scoreboard chip
-    CHIP(g, 30, 4, "4–0", DARK)
+    CHIP(g, 6, 3, "4–0", DARK)
     return im
 
 
