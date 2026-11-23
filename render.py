@@ -129,6 +129,153 @@ def draw_chip(d, x, y, s, fill):
     return cw
 
 
+# ---------------------------------------------------------------- pixel art
+# Every scene is drawn on a low-res grid canvas (final size / 2) and pasted
+# back with Image.NEAREST, so the page shows crisp 2x2 blocks — the pixel
+# style the user approved on the v2 lead sample. Scene text uses bitmap
+# glyphs defined here (my own letterforms); page typography stays smooth.
+FONT35 = {
+    "0": ("111", "101", "101", "101", "111"),
+    "1": ("010", "110", "010", "010", "111"),
+    "2": ("111", "001", "111", "100", "111"),
+    "3": ("111", "001", "111", "001", "111"),
+    "4": ("101", "101", "111", "001", "001"),
+    "5": ("111", "100", "111", "001", "111"),
+    "6": ("111", "100", "111", "101", "111"),
+    "7": ("111", "001", "010", "010", "010"),
+    "8": ("111", "101", "111", "101", "111"),
+    "9": ("111", "101", "111", "001", "111"),
+    "A": ("010", "101", "111", "101", "101"),
+    "B": ("110", "101", "110", "101", "110"),
+    "C": ("011", "100", "100", "100", "011"),
+    "D": ("110", "101", "101", "101", "110"),
+    "E": ("111", "100", "110", "100", "111"),
+    "F": ("111", "100", "110", "100", "100"),
+    "G": ("011", "100", "101", "101", "011"),
+    "H": ("101", "101", "111", "101", "101"),
+    "I": ("111", "010", "010", "010", "111"),
+    "K": ("101", "101", "110", "101", "101"),
+    "L": ("100", "100", "100", "100", "111"),
+    "M": ("101", "111", "101", "101", "101"),
+    "N": ("101", "111", "111", "101", "101"),
+    "O": ("010", "101", "101", "101", "010"),
+    "P": ("110", "101", "110", "100", "100"),
+    "R": ("110", "101", "110", "101", "101"),
+    "S": ("011", "100", "010", "001", "110"),
+    "T": ("111", "010", "010", "010", "010"),
+    "U": ("101", "101", "101", "101", "111"),
+    "V": ("101", "101", "101", "101", "010"),
+    "Y": ("101", "101", "010", "010", "010"),
+    "Z": ("111", "001", "010", "100", "111"),
+    " ": ("000", "000", "000", "000", "000"),
+    ".": ("000", "000", "000", "000", "010"),
+    "%": ("101", "001", "010", "100", "101"),
+    "/": ("001", "001", "010", "100", "100"),
+    "–": ("000", "000", "111", "000", "000"),
+    "·": ("000", "000", "010", "000", "000"),
+}
+FONT57 = {
+    "A": ("01110", "10001", "10001", "11111", "10001", "10001", "10001"),
+    "C": ("01110", "10001", "10000", "10000", "10000", "10001", "01110"),
+    "D": ("11110", "10001", "10001", "10001", "10001", "10001", "11110"),
+    "E": ("11111", "10000", "10000", "11110", "10000", "10000", "11111"),
+    "I": ("01110", "00100", "00100", "00100", "00100", "00100", "01110"),
+    "L": ("10000", "10000", "10000", "10000", "10000", "10000", "11111"),
+    "M": ("10001", "11011", "10101", "10101", "10001", "10001", "10001"),
+    "N": ("10001", "11001", "10101", "10011", "10001", "10001", "10001"),
+    "O": ("01110", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "P": ("11110", "10001", "10001", "11110", "10000", "10000", "10000"),
+    "R": ("11110", "10001", "10001", "11110", "10100", "10010", "10001"),
+    "S": ("01111", "10000", "10000", "01110", "00001", "00001", "11110"),
+    "T": ("11111", "00100", "00100", "00100", "00100", "00100", "00100"),
+    "U": ("10001", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "V": ("10001", "10001", "10001", "10001", "10001", "01010", "00100"),
+    "Y": ("10001", "10001", "01010", "00100", "00100", "00100", "00100"),
+    " ": ("00000", "00000", "00000", "00000", "00000", "00000", "00000"),
+}
+
+
+def px_text(g, x, y, s, font, color):
+    """Draw bitmap text on a grid canvas. Returns the width in grid px."""
+    cx = x
+    for ch in s:
+        gl = font.get(ch, font[" "])
+        for ry, row in enumerate(gl):
+            for rx, bit in enumerate(row):
+                if bit == "1":
+                    g.rectangle([cx + rx, y + ry, cx + rx, y + ry], fill=color)
+        cx += len(gl[0]) + 1
+    return cx - x - 1
+
+
+def px_text_w(s, font):
+    return sum(len(font.get(ch, font[" "])[0]) + 1 for ch in s) - 1
+
+
+def px_text_c(g, cx, y, s, font, color):
+    return px_text(g, cx - px_text_w(s, font) // 2, y, s, font, color)
+
+
+def px_chip(g, x, y, s, fill):
+    """Pixel chip on the grid canvas: 9 grid px tall = 18 final px, the same
+    height as the old smooth chips, so every chip on the page still matches.
+    Text is FONT35, centred by pixel bbox."""
+    tw = px_text_w(s, FONT35)
+    g.rounded_rectangle([x, y, x + tw + 6, y + 8], radius=2, fill=fill)
+    px_text(g, x + 3, y + 2, s, FONT35, (255, 255, 255))
+    return tw + 7
+
+
+def px_canvas(w, h, bg):
+    im = Image.new("RGB", (w, h), bg)
+    return im, ImageDraw.Draw(im)
+
+
+def px_paste(d, box, im):
+    """Upscale a grid canvas 2x with NEAREST and paste it into the page.
+    Odd dimensions crop 1px (grid = ceil(size / 2))."""
+    x0, y0, x1, y1 = box
+    w, h = x1 - x0, y1 - y0
+    up = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
+    if up.size != (w, h):
+        up = up.crop((0, 0, w, h))
+    d._image.paste(up, (int(x0), int(y0)))
+
+
+def px_glow(g, x0, y0, x1, y1, color):
+    """Sparse deterministic glow dots (~1 in 11 pixels)."""
+    for yy in range(y0, y1):
+        for xx in range(x0, x1):
+            if (xx * 5 + yy * 11) % 11 == 0:
+                g.point((xx, yy), fill=color)
+
+
+def px_map(gw, gh, lon0, lon1, lat0, lat1, sea, land):
+    """Region map rasterised straight onto a grid-size canvas."""
+    im = Image.new("RGB", (gw, gh), sea)
+    dd = ImageDraw.Draw(im)
+    for ring in POLYS:
+        xs = [p[0] for p in ring]
+        ys = [p[1] for p in ring]
+        if max(xs) < lon0 or min(xs) > lon1 or max(ys) < lat0 or min(ys) > lat1:
+            continue
+        pts = []
+        for lon, lat in ring:
+            pts.append(((lon - lon0) / (lon1 - lon0) * gw,
+                        (lat1 - lat) / (lat1 - lat0) * gh))
+        if len(pts) >= 3:
+            dd.polygon(pts, fill=land)
+    return im
+
+
+def px_person(g, cx, top, skin, suit, hair, bald=False):
+    """Seated delegate on the grid: head + shoulders."""
+    g.rectangle([cx - 2, top, cx + 2, top + 3], fill=skin)
+    if not bald:
+        g.rectangle([cx - 2, top, cx + 2, top + 1], fill=hair)
+    g.rectangle([cx - 4, top + 4, cx + 4, top + 7], fill=suit)
+
+
 def vgrad(w, h, top, bottom):
     img = Image.new("RGB", (1, h))
     px = img.load()
@@ -234,230 +381,192 @@ def _person(d, cx, top, s, skin, suit, hair, bald=False):
 
 
 def paint_lead(d, box):
-    """COP31 plenary hall, Antalya — the night the pact fell."""
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (22, 40, 58), (74, 52, 34))
-    d._image.paste(g, (int(x0), int(y0)))
-    # ceiling band + beam
-    d.rectangle([x0, y0, x1, y0 + h * 0.05], fill=(30, 48, 68))
-    d.line([x0, y0 + h * 0.05, x1, y0 + h * 0.05], fill=(201, 168, 106), width=1)
+    """COP31 plenary hall, Antalya — pixel art (320x103 grid, 2x NEAREST)."""
+    im, g = px_canvas(320, 103, (22, 40, 58))
+    # ceiling band + gold line
+    g.rectangle([0, 0, 320, 5], fill=(30, 48, 68))
+    g.rectangle([0, 5, 320, 5], fill=(201, 168, 106))
     # side drapes with folds
-    for dx0, dx1 in ((x0, x0 + w * 0.035), (x1 - w * 0.035, x1)):
-        d.rectangle([dx0, y0, dx1, y1], fill=(56, 32, 36))
-        for fx in (0.33, 0.66):
-            fx0 = dx0 + (dx1 - dx0) * fx
-            d.line([fx0, y0, fx0, y1], fill=(78, 46, 50), width=1)
-    # warm stage glow behind the screen
-    glow(d._image, (x0 + w * 0.28, y0 + h * 0.04, x0 + w * 0.72, y0 + h * 0.44),
-         (255, 190, 110), 55)
+    for dx0 in (0, 309):
+        g.rectangle([dx0, 0, dx0 + 10, 103], fill=(56, 32, 36))
+        g.rectangle([dx0 + 3, 0, dx0 + 4, 103], fill=(78, 46, 50))
+        g.rectangle([dx0 + 7, 0, dx0 + 8, 103], fill=(78, 46, 50))
+    # warm glow behind the screen: sparse gold dots
+    px_glow(g, 100, 8, 220, 42, (255, 190, 110))
     # chandelier, two tiers, top centre
-    cx, cy1, cy2 = x0 + w * 0.50, y0 + h * 0.06, y0 + h * 0.105
-    d.line([cx, y0 + 2, cx, cy1], fill=(201, 168, 106), width=2)
-    glow(d._image, (cx - 34, cy1 - 8, cx + 34, cy2 + 12), (255, 210, 130), 45)
-    d.line([cx - 20, cy1, cx + 20, cy1], fill=(201, 168, 106), width=2)
+    cx = 160
+    g.rectangle([cx, 1, cx, 6], fill=(201, 168, 106))
+    g.rectangle([cx - 20, 7, cx + 20, 7], fill=(201, 168, 106))
     for dx in (-18, -9, 0, 9, 18):
-        d.ellipse([cx + dx - 2.5, cy1 - 3, cx + dx + 2.5, cy1 + 2],
-                  fill=(255, 217, 122))
-    d.line([cx - 12, cy1, cx - 12, cy2], fill=(201, 168, 106), width=1)
-    d.line([cx + 12, cy1, cx + 12, cy2], fill=(201, 168, 106), width=1)
-    d.line([cx - 30, cy2, cx + 30, cy2], fill=(201, 168, 106), width=2)
+        g.rectangle([cx + dx - 1, 5, cx + dx + 1, 7], fill=(255, 217, 122))
+    g.rectangle([cx - 12, 8, cx - 12, 11], fill=(201, 168, 106))
+    g.rectangle([cx + 12, 8, cx + 12, 11], fill=(201, 168, 106))
+    g.rectangle([cx - 30, 12, cx + 30, 12], fill=(201, 168, 106))
     for dx in (-28, -19, -10, 0, 10, 19, 28):
-        d.ellipse([cx + dx - 2.5, cy2 - 3, cx + dx + 2.5, cy2 + 2],
-                  fill=(255, 217, 122))
-        d.polygon([(cx + dx, cy2 + 3), (cx + dx - 2, cy2 + 8),
-                   (cx + dx + 2, cy2 + 8)], fill=(255, 225, 150))
-    d.ellipse([cx - 4, cy1 - 4, cx + 4, cy1 + 4], fill=(255, 217, 122))
-    # wall clock, top left — late hour, overtime
-    ccx, ccy = x0 + w * 0.075, y0 + h * 0.13
-    d.ellipse([ccx - 11, ccy - 11, ccx + 11, ccy + 11], fill=(238, 232, 214),
-              outline=(120, 100, 70), width=2)
-    for ang in (0, 90, 180, 270):
-        a = math.radians(ang)
-        d.line([ccx + 8 * math.cos(a), ccy + 8 * math.sin(a),
-                ccx + 10 * math.cos(a), ccy + 10 * math.sin(a)],
-               fill=(120, 100, 70), width=1)
-    d.line([ccx, ccy, ccx + 6, ccy - 4], fill=INK, width=2)
-    d.line([ccx, ccy, ccx, ccy - 8], fill=INK, width=2)
-    draw_tracked_c(d, ccx, ccy + 13, "OVERTIME", IN(7), (232, 220, 192), 0.8)
-    # big screen: the pact, no consensus (ends 0.37h, clear of the podium)
-    sx0, sy0, sx1, sy1 = x0 + w * 0.335, y0 + h * 0.15, x0 + w * 0.665, y0 + h * 0.37
-    d.rectangle([sx0, sy0, sx1, sy1], fill=(13, 26, 38),
-                outline=(201, 168, 106), width=2)
-    center_text(d, (sx0 + sx1) / 2, sy0 + 4, "ANTALYA PACT", IN(10),
-                (232, 220, 192))
-    d.line([sx0 + 12, sy0 + 20, sx1 - 12, sy0 + 20], fill=(120, 100, 70), width=1)
-    center_text(d, (sx0 + sx1) / 2, sy0 + 24, "NO CONSENSUS", IN(12), (224, 82, 68))
-    # podium, wider, with gold trim, globe emblem on its front, gavel on top
-    px0, px1 = x0 + w * 0.42, x0 + w * 0.58
-    py0, py1 = y0 + h * 0.40, y0 + h * 0.55
-    d.polygon([(px0, py1), (px0 + 6, py0), (px1 - 6, py0), (px1, py1)],
+        g.rectangle([cx + dx - 1, 10, cx + dx + 1, 12], fill=(255, 217, 122))
+        g.rectangle([cx + dx, 13, cx + dx, 15], fill=(255, 225, 150))
+    g.rectangle([cx - 2, 4, cx + 2, 6], fill=(255, 217, 122))
+    # wall clock, top left
+    ccx, ccy = 24, 14
+    g.ellipse([ccx - 6, ccy - 6, ccx + 6, ccy + 6], fill=(238, 232, 214),
+              outline=(120, 100, 70))
+    g.rectangle([ccx - 1, ccy - 5, ccx + 1, ccy - 3], fill=(120, 100, 70))
+    g.rectangle([ccx - 1, ccy + 3, ccx + 1, ccy + 5], fill=(120, 100, 70))
+    g.rectangle([ccx - 5, ccy - 1, ccx - 3, ccy + 1], fill=(120, 100, 70))
+    g.rectangle([ccx + 3, ccy - 1, ccx + 5, ccy + 1], fill=(120, 100, 70))
+    g.rectangle([ccx, ccy - 2, ccx + 3, ccy], fill=INK)
+    g.rectangle([ccx, ccy - 4, ccx, ccy], fill=INK)
+    px_text_c(g, ccx, ccy + 8, "OVERTIME", FONT35, (232, 220, 192))
+    # big screen: the pact, no consensus
+    sx0, sy0, sx1, sy1 = 107, 16, 213, 38
+    g.rectangle([sx0, sy0, sx1, sy1], fill=(13, 26, 38), outline=(201, 168, 106))
+    px_text_c(g, 160, 19, "ANTALYA PACT", FONT57, (232, 220, 192))
+    g.rectangle([sx0 + 8, 28, sx1 - 8, 28], fill=(120, 100, 70))
+    px_text_c(g, 160, 30, "NO CONSENSUS", FONT57, (224, 82, 68))
+    # podium with gold trim, globe on its front, gavel on top
+    px0, px1, py0, py1 = 134, 186, 41, 57
+    g.polygon([(px0, py1), (px0 + 4, py0), (px1 - 4, py0), (px1, py1)],
               fill=(107, 74, 47))
-    d.rectangle([px0 - 4, py0 - 3, px1 + 4, py0 + 2], fill=(84, 58, 36))
-    d.line([px0 + 2, py0 + 6, px1 - 2, py0 + 6], fill=(201, 168, 106), width=1)
-    gx, gy = x0 + w * 0.50, py0 + 13
-    d.ellipse([gx - 8, gy - 8, gx + 8, gy + 8], fill=(127, 176, 216),
-              outline=(232, 220, 192), width=1)
-    d.line([gx - 5, gy - 7, gx - 1, gy - 2, gx - 4, gy + 3, gx + 2, gy + 7],
-           fill=(240, 240, 230), width=1)
-    d.line([gx + 7, gy - 5, gx + 3, gy + 1, gx + 6, gy + 5], fill=(240, 240, 230), width=1)
-    # gavel resting on the podium top
-    d.line([px0 + 8, py0 - 5, px0 + 26, py0 - 8], fill=(201, 168, 106), width=3)
-    d.rectangle([px0 + 22, py0 - 12, px0 + 30, py0 - 6], fill=(201, 168, 106))
-    # delegate rows: desks + figures, receding — jittered, varied, not stamped
+    g.rectangle([px0 - 3, py0 - 2, px1 + 3, py0], fill=(84, 58, 36))
+    g.rectangle([px0 + 2, py0 + 5, px1 - 2, py0 + 5], fill=(201, 168, 106))
+    gx, gy = 160, py0 + 11
+    g.ellipse([gx - 5, gy - 5, gx + 5, gy + 5], fill=(127, 176, 216),
+              outline=(232, 220, 192))
+    g.rectangle([gx - 3, gy - 3, gx - 1, gy - 1], fill=(240, 240, 230))
+    g.rectangle([gx + 1, gy + 1, gx + 3, gy + 3], fill=(240, 240, 230))
+    # gavel: bold gold handle + head on the podium top
+    g.rectangle([px0 + 6, py0 - 6, px0 + 22, py0 - 5], fill=(201, 168, 106))
+    g.rectangle([px0 + 20, py0 - 9, px0 + 27, py0 - 6], fill=(201, 168, 106))
+    g.rectangle([px0 + 8, py0 - 4, px0 + 11, py0 - 2], fill=(84, 58, 36))
+    # delegate rows: desks + figures, jittered and varied
     skins = [(198, 164, 132), (172, 128, 96), (214, 182, 150), (150, 108, 82),
              (226, 196, 164)]
     suits = [(30, 44, 66), (52, 52, 56), (44, 62, 48), (86, 42, 44),
              (38, 38, 44), (66, 54, 40), (70, 60, 90)]
     hairs = [(30, 22, 16), (70, 70, 70), (160, 160, 160), (20, 20, 20)]
-    rows = [(0.56, 0.62, 7), (0.70, 0.80, 8), (0.85, 1.00, 9)]
-    for ri, (ry, rs, n) in enumerate(rows):
-        desk_y = y0 + h * ry
-        d.rectangle([x0 + 6, desk_y, x1 - 6, desk_y + h * 0.045],
-                    fill=(58, 44, 32))
-        d.line([x0 + 6, desk_y, x1 - 6, desk_y], fill=(120, 96, 66), width=1)
+    for ri, (dy, n) in enumerate([(58, 7), (72, 8), (88, 9)]):
+        g.rectangle([12, dy, 308, dy + 4], fill=(58, 44, 32))
+        g.rectangle([12, dy, 308, dy], fill=(120, 96, 66))
         for i in range(n):
-            jx = ((i * 13 + ri * 7) % 5 - 2) * 2
-            fx = x0 + (i + 0.5) * w / n + jx
-            fs = rs * (0.92 + ((i * 3 + ri) % 3) * 0.06)
+            jx = (i * 13 + ri * 7) % 5 - 2
+            fx = int(12 + (i + 0.5) * 296 / n) + jx
             k = (ri * 7 + i * 3) % 5
-            ptop = desk_y - h * 0.055 * fs
-            _person(d, fx, ptop, fs, skins[k], suits[(ri * 5 + i) % 7],
-                    hairs[(ri + i) % 4], bald=((ri + i) % 6 == 0))
-            # a few delegates raise a hand
+            top = dy - 8
+            px_person(g, fx, top, skins[k], suits[(ri * 5 + i) % 7],
+                      hairs[(ri + i) % 4], bald=((ri + i) % 6 == 0))
             if (ri * 3 + i) % 5 == 0:
-                hx = fx + 7 * fs
-                hy = ptop + 2 * 3.4 * fs
-                d.line([hx, hy, hx + 3, hy - 10], fill=skins[k], width=2)
-                d.ellipse([hx + 1, hy - 13, hx + 5, hy - 9], fill=skins[k])
-            # desk items cycle: paper+laptop, paper+glass, flag, laptop+paper
+                g.rectangle([fx + 5, top + 2, fx + 6, top + 6], fill=skins[k])
+                g.rectangle([fx + 5, top - 1, fx + 7, top + 1], fill=skins[k])
             m = (ri + i) % 4
             if m == 0:
-                d.rectangle([fx - 8, desk_y + 2, fx - 1, desk_y + 6], fill=(238, 232, 214))
-                d.rectangle([fx + 2, desk_y + 2, fx + 9, desk_y + 5], fill=(150, 190, 210))
+                g.rectangle([fx - 5, dy + 1, fx - 2, dy + 3], fill=(238, 232, 214))
+                g.rectangle([fx + 1, dy + 1, fx + 5, dy + 3], fill=(150, 190, 210))
             elif m == 1:
-                d.rectangle([fx - 8, desk_y + 2, fx - 1, desk_y + 6], fill=(238, 232, 214))
-                d.rectangle([fx + 4, desk_y + 1, fx + 8, desk_y + 6], fill=(200, 220, 235),
-                            outline=(120, 140, 160), width=1)
+                g.rectangle([fx - 5, dy + 1, fx - 2, dy + 3], fill=(238, 232, 214))
+                g.rectangle([fx + 2, dy + 1, fx + 4, dy + 3], fill=(200, 220, 235))
             elif m == 2:
-                d.rectangle([fx + 11, desk_y - 7, fx + 17, desk_y - 1],
-                            fill=(43, 94, 167))
-                d.ellipse([fx + 13, desk_y - 5, fx + 15, desk_y - 3],
-                          fill=(255, 217, 0))
+                g.rectangle([fx + 5, dy - 4, fx + 8, dy - 1], fill=(43, 94, 167))
+                g.rectangle([fx + 6, dy - 3, fx + 7, dy - 2], fill=(255, 217, 0))
             else:
-                d.rectangle([fx - 9, desk_y + 2, fx - 2, desk_y + 5], fill=(150, 190, 210))
-                d.rectangle([fx + 1, desk_y + 2, fx + 8, desk_y + 6], fill=(238, 232, 214))
+                g.rectangle([fx - 6, dy + 1, fx - 3, dy + 3], fill=(150, 190, 210))
+                g.rectangle([fx, dy + 1, fx + 4, dy + 3], fill=(238, 232, 214))
     # two standing objectors at the edges, arms raised
-    for sx, flip, suit in ((x0 + w * 0.045, 1, (30, 44, 66)),
-                           (x1 - w * 0.045, -1, (86, 42, 44))):
-        by = y0 + h * 0.86
-        d.ellipse([sx - 5, by - 34, sx + 5, by - 24], fill=(198, 164, 132))
-        d.pieslice([sx - 5, by - 36, sx + 5, by - 27], 180, 360, fill=(30, 22, 16))
-        d.polygon([(sx - 9, by), (sx - 8, by - 24), (sx + 8, by - 24),
-                   (sx + 9, by)], fill=suit)
-        d.line([sx + flip * 7, by - 22, sx + flip * 14, by - 38],
-               fill=(198, 164, 132), width=3)
-        hx0, hx1 = sorted((sx + flip * 12, sx + flip * 16))
-        d.ellipse([hx0, by - 41, hx1, by - 37], fill=(198, 164, 132))
-    # warm floor reflection under the podium
-    glow(d._image, (x0 + w * 0.40, y0 + h * 0.52, x0 + w * 0.60, y0 + h * 0.62),
-         (255, 190, 110), 25)
-    # floor strip
-    d.rectangle([x0, y1 - h * 0.06, x1, y1], fill=(58, 42, 28))
-    d.line([x0, y1 - h * 0.06, x1, y1 - h * 0.06], fill=(140, 112, 78), width=1)
-    # NO DEAL chip, top right — same chip system as the cards
-    draw_chip(d, x1 - 8 - (d.textlength("NO DEAL", font=PT(12, "Bold")) + 12),
-              y0 + 8, "NO DEAL", RED)
+    for sx, flip, suit in ((16, 1, (30, 44, 66)), (304, -1, (86, 42, 44))):
+        by = 92
+        g.rectangle([sx - 2, by - 16, sx + 2, by - 12], fill=(198, 164, 132))
+        g.rectangle([sx - 2, by - 16, sx + 2, by - 15], fill=(30, 22, 16))
+        g.rectangle([sx - 4, by - 11, sx + 4, by], fill=suit)
+        ax0, ax1 = sorted((sx + flip * 4, sx + flip * 5))
+        g.rectangle([ax0, by - 19, ax1, by - 11], fill=(198, 164, 132))
+        hx0, hx1 = sorted((sx + flip * 4, sx + flip * 6))
+        g.rectangle([hx0, by - 20, hx1, by - 19], fill=(198, 164, 132))
+    # floor strip, then warm reflection dots on it under the podium
+    g.rectangle([0, 97, 320, 103], fill=(58, 42, 28))
+    g.rectangle([0, 97, 320, 97], fill=(140, 112, 78))
+    px_glow(g, 130, 98, 190, 102, (255, 190, 110))
+    # NO DEAL chip, top right (pixel chip, same 18px height as the rest)
+    px_chip(g, 320 - 8 - (px_text_w("NO DEAL", FONT35) + 7), 8, "NO DEAL", RED)
+    px_paste(d, box, im)
 
 
 def paint_drones(d, box):
-    """Night over Ukraine: drones, bursts, a burning block."""
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (13, 27, 46), (39, 75, 99))
-    d._image.paste(g, (int(x0), int(y0)))
-    for sx, sy in [(0.08, 0.18), (0.22, 0.08), (0.45, 0.14), (0.62, 0.07),
-                   (0.78, 0.2), (0.9, 0.1), (0.33, 0.24), (0.55, 0.28)]:
-        d.ellipse([x0 + w * sx, y0 + h * sy, x0 + w * sx + 1.5, y0 + h * sy + 1.5],
-                  fill=(220, 225, 235))
+    """Night over Ukraine: drones, bursts, a burning block — pixel art."""
+    im, g = px_canvas(172, 24, (13, 27, 46))
+    g.rectangle([0, 9, 172, 17], fill=(26, 51, 72))
+    g.rectangle([0, 18, 172, 18], fill=(39, 75, 99))
+    # stars
+    for sx, sy in [(14, 4), (38, 2), (77, 3), (107, 2), (134, 5), (155, 2),
+                   (57, 6), (95, 7)]:
+        g.point((sx, sy), fill=(220, 225, 235))
     # crescent moon
-    mx, my = x0 + w * 0.88, y0 + h * 0.22
-    d.ellipse([mx - 8, my - 8, mx + 8, my + 8], fill=(232, 228, 205))
-    d.ellipse([mx - 4, my - 9, mx + 11, my + 7], fill=(39, 75, 99))
-    # drones: small quadcopters with lights
-    for dx, dy, s in [(0.16, 0.30, 1.0), (0.42, 0.22, 0.8), (0.66, 0.38, 1.1),
-                      (0.84, 0.52, 0.9)]:
-        cx, cy = x0 + w * dx, y0 + h * dy
-        a = 6 * s
-        d.line([cx - a, cy - a, cx + a, cy + a], fill=(200, 205, 215), width=1)
-        d.line([cx - a, cy + a, cx + a, cy - a], fill=(200, 205, 215), width=1)
-        d.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=(230, 230, 230))
-        d.ellipse([cx - a - 1, cy - a - 1, cx - a + 1, cy - a + 1], fill=(255, 60, 50))
-        d.ellipse([cx + a - 1, cy + a - 1, cx + a + 1, cy + a + 1], fill=(80, 220, 120))
+    mx, my = 151, 5
+    g.ellipse([mx - 3, my - 3, mx + 3, my + 3], fill=(232, 228, 205))
+    g.ellipse([mx - 1, my - 3, mx + 4, my + 3], fill=(13, 27, 46))
+    # drones: 3x3 X with red + green lights
+    for dx, dy in [(28, 7), (72, 5), (114, 9), (145, 12)]:
+        g.point((dx - 1, dy - 1), fill=(200, 205, 215))
+        g.point((dx + 1, dy - 1), fill=(200, 205, 215))
+        g.point((dx, dy), fill=(230, 230, 230))
+        g.point((dx - 1, dy + 1), fill=(200, 205, 215))
+        g.point((dx + 1, dy + 1), fill=(200, 205, 215))
+        g.point((dx - 2, dy - 1), fill=(255, 60, 50))
+        g.point((dx + 2, dy + 1), fill=(80, 220, 120))
     # interception bursts
-    for bx, by, r in [(0.30, 0.55, 9), (0.72, 0.66, 11)]:
-        cx, cy = x0 + w * bx, y0 + h * by
-        glow(d._image, (cx - r * 2, cy - r * 2, cx + r * 2, cy + r * 2),
-             (255, 170, 60), 60)
-        for ang in range(0, 360, 30):
-            a = math.radians(ang)
-            d.line([cx, cy, cx + r * math.cos(a), cy + r * math.sin(a)],
-                   fill=(255, 205, 90), width=2)
-        d.ellipse([cx - 3, cy - 3, cx + 3, cy + 3], fill=(255, 230, 150))
+    for bx, by in [(52, 13), (124, 15)]:
+        px_glow(g, bx - 4, by - 4, bx + 5, by + 5, (255, 170, 60))
+        for ox, oy in [(0, -3), (0, 3), (-3, 0), (3, 0), (-2, -2), (2, -2),
+                       (-2, 2), (2, 2)]:
+            g.point((bx + ox, by + oy), fill=(255, 205, 90))
+        g.rectangle([bx - 1, by - 1, bx + 1, by + 1], fill=(255, 230, 150))
     # ground: city silhouette + burning block
-    gy = y1 - h * 0.22
-    d.rectangle([x0, gy, x1, y1], fill=(10, 16, 26))
-    for bx, bw, bh in [(0.02, 0.10, 0.14), (0.14, 0.08, 0.10), (0.24, 0.12, 0.16),
-                       (0.52, 0.09, 0.12), (0.63, 0.11, 0.15), (0.88, 0.10, 0.11)]:
-        d.rectangle([x0 + w * bx, gy - h * bh, x0 + w * (bx + bw), gy],
-                    fill=(16, 26, 40))
+    g.rectangle([0, 19, 172, 24], fill=(10, 16, 26))
+    for bx, bw, bh in [(3, 17, 3), (24, 14, 2), (41, 21, 4), (89, 16, 3),
+                       (108, 19, 4), (151, 17, 3)]:
+        g.rectangle([bx, 19 - bh, bx + bw, 19], fill=(16, 26, 40))
         for wy in range(2):
             for wx in range(3):
-                d.rectangle([x0 + w * (bx + 0.015 + wx * 0.03),
-                             gy - h * bh + 3 + wy * 5,
-                             x0 + w * (bx + 0.025 + wx * 0.03),
-                             gy - h * bh + 6 + wy * 5], fill=(255, 205, 110))
+                g.point((bx + 3 + wx * 5, 19 - bh + 1 + wy * 2),
+                        fill=(255, 205, 110))
     # the Dymer block, hit and burning
-    bx0, by0 = x0 + w * 0.38, gy - h * 0.16
-    d.polygon([(bx0, by0 + 10), (bx0 + 3, by0), (bx0 + 26, by0 - 2),
-               (bx0 + 30, by0 + 10)], fill=(24, 34, 50))
-    glow(d._image, (bx0 + 4, by0 - 14, bx0 + 28, by0 + 6), (255, 120, 40), 70)
-    d.polygon([(bx0 + 12, by0 - 2), (bx0 + 15, by0 - 12), (bx0 + 18, by0 - 3),
-               (bx0 + 21, by0 - 10), (bx0 + 24, by0 - 2)], fill=(255, 150, 50))
+    g.rectangle([65, 14, 82, 19], fill=(24, 34, 50))
+    px_glow(g, 67, 11, 81, 15, (255, 120, 40))
+    g.point((70, 12), fill=(255, 150, 50))
+    g.point((74, 11), fill=(255, 220, 90))
+    g.point((77, 12), fill=(255, 150, 50))
+    px_paste(d, box, im)
 
 
 def paint_bahrain(d, box):
-    """The Gulf: Bahrain, two radar dishes, claim vs denial."""
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    im = crop_map(box, 47, 57, 24, 30, (185, 210, 226), (224, 211, 178))
-    d._image.paste(im, (int(x0), int(y0)))
+    """The Gulf: Bahrain, two radar dishes, claim vs denial — pixel art."""
+    im, g = px_canvas(172, 23, (185, 210, 226))
+    im.paste(px_map(172, 23, 47, 57, 24, 30, (185, 210, 226), (224, 211, 178)),
+             (0, 0))
     # Bahrain island marker
-    bx = x0 + (50.6 - 47) / 10 * w
-    by = y0 + (30 - 26.2) / 6 * h
-    d.ellipse([bx - 7, by - 7, bx + 7, by + 7], outline=RED, width=2)
-    d.ellipse([bx - 2, by - 2, bx + 2, by + 2], fill=RED)
+    bx, by = 62, 15
+    g.ellipse([bx - 4, by - 4, bx + 4, by + 4], outline=RED)
+    g.rectangle([bx - 1, by - 1, bx + 1, by + 1], fill=RED)
     # radar dishes at al-Riffa and Awali
-    for dx, dy in [(0.62, 0.42), (0.78, 0.58)]:
-        cx, cy = x0 + w * dx, y0 + h * dy
-        d.line([cx, cy + 2, cx, cy + 12], fill=(240, 240, 235), width=2)
-        d.line([cx - 7, cy + 12, cx + 7, cy + 12], fill=(240, 240, 235), width=2)
-        d.pieslice([cx - 9, cy - 10, cx + 9, cy + 8], 200, 340, fill=(245, 245, 240),
-                   outline=(120, 120, 115), width=1)
-        d.line([cx - 8, cy - 2, cx + 8, cy - 2], fill=(120, 120, 115), width=1)
-    # claimed strike: dashed line to a burst
-    ex, ey = x0 + w * 0.70, y0 + h * 0.30
+    for dx, dy in [(107, 10), (134, 13)]:
+        g.rectangle([dx, dy + 1, dx, dy + 5], fill=(240, 240, 235))
+        g.rectangle([dx - 3, dy + 5, dx + 3, dy + 5], fill=(240, 240, 235))
+        g.rectangle([dx - 4, dy - 3, dx + 4, dy - 1], fill=(245, 245, 240))
+        g.rectangle([dx - 2, dy - 4, dx + 2, dy - 3], fill=(245, 245, 240))
+        g.rectangle([dx - 4, dy - 1, dx + 4, dy - 1], fill=(120, 120, 115))
+    # claimed strike: dashed red line to a burst
+    ex, ey = 120, 7
     for t in range(0, 10, 2):
-        px = bx + (ex - bx) * t / 10
-        py = by + (ey - by) * t / 10
-        d.line([px, py, px + 3, py + 3], fill=RED, width=1)
-    glow(d._image, (ex - 10, ey - 10, ex + 10, ey + 10), (255, 120, 40), 60)
-    for ang in range(0, 360, 45):
-        a = math.radians(ang)
-        d.line([ex, ey, ex + 7 * math.cos(a), ey + 7 * math.sin(a)],
-               fill=(255, 180, 80), width=2)
-    # chip
-    draw_chip(d, x0 + 6, y1 - 23, "CLAIM vs DENIAL", RED)
+        px = int(bx + (ex - bx) * t / 10)
+        py = int(by + (ey - by) * t / 10)
+        g.rectangle([px, py, px + 1, py + 1], fill=RED)
+    for ox, oy in [(0, -3), (0, 3), (-3, 0), (3, 0), (-2, -2), (2, -2),
+                   (-2, 2), (2, 2)]:
+        g.point((ex + ox, ey + oy), fill=(255, 180, 80))
+    g.rectangle([ex - 1, ey - 1, ex + 1, ey + 1], fill=(255, 230, 150))
+    # chip top-left: the pixel chip is wider than the old smooth one, so it
+    # moves up here to keep clear of the Bahrain marker ring; x=19 clears
+    # the number disc draw_side_card paints over the scene's top-left.
+    px_chip(g, 19, 2, "CLAIM VS DENIAL", RED)
+    px_paste(d, box, im)
 
 
 def paint_hk(d, box):
