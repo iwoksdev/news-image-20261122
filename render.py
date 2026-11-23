@@ -226,6 +226,18 @@ def px_chip(g, x, y, s, fill):
     return tw + 7
 
 
+def px_chip2(g, x, y, l1, l2, fill):
+    """Two-line pixel chip (16 grid px tall) for a string too long to fit one
+    pixel line on a 96-wide card; the line break replaces the separator.
+    FONT35 glyphs are 5 rows tall, so the lines sit at y+2 and y+9 with a
+    2px gap — a 1px gap read as one jumbled line."""
+    w = max(px_text_w(l1, FONT35), px_text_w(l2, FONT35)) + 7
+    g.rounded_rectangle([x, y, x + w - 1, y + 15], radius=2, fill=fill)
+    px_text(g, x + 3, y + 2, l1, FONT35, (255, 255, 255))
+    px_text(g, x + 3, y + 9, l2, FONT35, (255, 255, 255))
+    return w
+
+
 def px_canvas(w, h, bg):
     im = Image.new("RGB", (w, h), bg)
     return im, ImageDraw.Draw(im)
@@ -727,151 +739,155 @@ def paint_football(d, box):
 
 
 def paint_manipur(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    im = crop_map(box, 91, 98, 22, 29, (185, 210, 226), (224, 211, 178))
-    d._image.paste(im, (int(x0), int(y0)))
-    # Imphal marker + hospital crosses
-    ix = x0 + (93.9 - 91) / 7 * w
-    iy = y0 + (29 - 24.8) / 7 * h
-    d.ellipse([ix - 8, iy - 8, ix + 8, iy + 8], outline=RED, width=2)
-    d.ellipse([ix - 2, iy - 2, ix + 2, iy + 2], fill=RED)
-    for cx, cy in [(0.30, 0.35), (0.55, 0.62), (0.72, 0.30)]:
-        px, py = x0 + w * cx, y0 + h * cy
-        d.rectangle([px - 1, py - 5, px + 1, py + 5], fill=RED)
-        d.rectangle([px - 5, py - 1, px + 5, py + 1], fill=RED)
-    draw_chip(d, x0 + 30, y0 + 5, "17 DEAD", RED)
+    """Manipur: pixel map of NE India, Imphal ring, hospital crosses — pixel art."""
+    im, g = px_canvas(96, 27, (185, 210, 226))
+    # NE India landmass (lon 91-98, lat 22-29), simplified low-res shape
+    g.polygon([(8, 4), (30, 2), (60, 5), (88, 3), (93, 12), (85, 20),
+               (60, 24), (30, 25), (12, 22), (4, 12)], fill=(224, 211, 178))
+    # darker hill patch for texture
+    g.polygon([(40, 8), (55, 7), (62, 12), (55, 16), (42, 15)],
+              fill=(205, 192, 158))
+    # Imphal ring + dot (93.9E, 24.8N)
+    g.ellipse([36, 12, 44, 20], outline=RED)
+    g.rectangle([39, 15, 40, 16], fill=RED)
+    # hospital crosses
+    for cx, cy in [(29, 9), (53, 17), (69, 8)]:
+        g.rectangle([cx, cy - 2, cx, cy + 2], fill=RED)
+        g.rectangle([cx - 2, cy, cx + 2, cy], fill=RED)
+    # toll chip
+    px_chip(g, 15, 2, "17 DEAD", RED)
+    px_paste(d, box, im)
 
 
 def paint_cikande(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (120, 130, 150), (210, 205, 195))
-    d._image.paste(g, (int(x0), int(y0)))
-    # smoke
-    for sx, sy, r in [(0.30, 0.20, 10), (0.36, 0.12, 12), (0.44, 0.22, 9),
-                      (0.62, 0.14, 11), (0.70, 0.24, 8)]:
-        cx, cy = x0 + w * sx, y0 + h * sy
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(110, 112, 118))
-        d.ellipse([cx - r + 3, cy - r + 3, cx + r - 3, cy + r - 3], fill=(140, 142, 148))
-    # factory: sawtooth roof + chimney
-    fy = y1 - h * 0.12
-    d.rectangle([x0 + 8, fy - h * 0.42, x1 - 8, fy], fill=(138, 141, 144))
+    """Cikande: factory, sawtooth roof, flames, smoke — pixel art."""
+    im, g = px_canvas(96, 27, (200, 195, 185))
+    # sky bands: dusk grey top, pale bottom, checkerboard seam
+    g.rectangle([0, 0, 96, 12], fill=(140, 150, 165))
+    for xx in range(96):
+        if xx % 2 == 0:
+            g.point((xx, 12), fill=(200, 195, 185))
+    # smoke puffs
+    for cx, cy, r in [(29, 5, 5), (35, 3, 6), (42, 6, 4), (60, 4, 5), (67, 6, 4)]:
+        g.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(110, 112, 118))
+        g.ellipse([cx - r + 2, cy - r + 2, cx + r - 2, cy + r - 2],
+                  fill=(140, 142, 148))
+    # factory body + sawtooth roof + chimney
+    g.rectangle([4, 13, 92, 24], fill=(138, 141, 144))
     for i in range(5):
-        sx = x0 + 8 + i * (w - 16) / 5
-        d.polygon([(sx, fy - h * 0.42), (sx + (w - 16) / 10, fy - h * 0.58),
-                   (sx + (w - 16) / 5, fy - h * 0.42)], fill=(110, 113, 116))
-    d.rectangle([x1 - 34, fy - h * 0.72, x1 - 26, fy], fill=(100, 102, 105))
+        sx = 4 + i * 16
+        g.polygon([(sx, 13), (sx + 8, 8), (sx + 16, 13)], fill=(110, 113, 116))
+    g.rectangle([79, 5, 83, 24], fill=(100, 102, 105))
+    # windows: 3 rows x 6 cols (third row clips below the box, as before)
     for wy in range(3):
         for wx in range(6):
-            d.rectangle([x0 + 16 + wx * 28, fy - h * 0.34 + wy * 12,
-                         x0 + 22 + wx * 28, fy - h * 0.34 + wy * 12 + 6],
+            g.rectangle([8 + wx * 14, 15 + wy * 6, 10 + wx * 14, 17 + wy * 6],
                         fill=(255, 205, 110))
     # flames from the roof
-    for fx in (0.25, 0.45, 0.65):
-        cx = x0 + w * fx
-        d.polygon([(cx - 7, fy - h * 0.40), (cx, fy - h * 0.62), (cx + 3, fy - h * 0.44),
-                   (cx + 7, fy - h * 0.58), (cx + 9, fy - h * 0.40)],
+    for cx in (24, 43, 62):
+        g.polygon([(cx - 3, 13), (cx, 7), (cx + 2, 12), (cx + 4, 8), (cx + 5, 13)],
                   fill=(255, 150, 50))
-        d.polygon([(cx - 3, fy - h * 0.40), (cx, fy - h * 0.52), (cx + 4, fy - h * 0.40)],
-                  fill=(255, 220, 90))
-    draw_chip(d, x0 + 30, y0 + 5, "3 DEAD · 36 MISSING", RED)
+        g.polygon([(cx - 1, 13), (cx, 10), (cx + 2, 13)], fill=(255, 220, 90))
+    # casualty chip: the string is too long for one pixel line, so it stacks
+    px_chip2(g, 17, 2, "3 DEAD", "36 MISSING", RED)
+    px_paste(d, box, im)
 
 
 def paint_sparta(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (120, 165, 195), (52, 96, 130))
-    d._image.paste(g, (int(x0), int(y0)))
+    """Sparta II: sea, burning ship, containers, lifeboat — pixel art.
+
+    The old smooth version hid the stern flame and smoke behind the chip
+    and the first container; here both sit at the stern, left of the chip,
+    so the fire reads."""
+    im, g = px_canvas(96, 27, (52, 96, 130))
+    g.rectangle([0, 0, 96, 13], fill=(120, 165, 195))
+    for xx in range(96):
+        if xx % 2 == 0:
+            g.point((xx, 13), fill=(52, 96, 130))
     # waves
-    for wy in (0.55, 0.68, 0.82, 0.94):
-        for wx in (0.05, 0.30, 0.55, 0.80):
-            d.arc([x0 + w * wx - 12, y0 + h * wy - 4, x0 + w * wx + 12,
-                   y0 + h * wy + 4], 200, 340, fill=(220, 235, 245), width=1)
-    # smoke plume from the stern
-    for sx, sy, r in [(0.22, 0.30, 8), (0.26, 0.20, 10), (0.30, 0.12, 9)]:
-        cx, cy = x0 + w * sx, y0 + h * sy
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(105, 108, 114))
-    # flame at the stern
-    fx, fy = x0 + w * 0.20, y0 + h * 0.42
-    d.polygon([(fx - 6, fy), (fx, fy - 14), (fx + 3, fy - 4), (fx + 6, fy - 12),
-               (fx + 8, fy)], fill=(255, 150, 50))
-    # hull + containers + bridge
-    hy = y0 + h * 0.62
-    d.polygon([(x0 + w * 0.08, hy), (x0 + w * 0.92, hy), (x0 + w * 0.86, hy + 10),
-               (x0 + w * 0.14, hy + 10)], fill=(40, 44, 52))
-    # the ship's name, very small and clean on the hull
-    draw_tracked_c(d, x0 + w * 0.50, hy + 1, "SPARTA II", IN(7),
-                   (240, 240, 235), 0.6)
-    for i, col in enumerate([(178, 84, 44), (52, 96, 150), (90, 140, 70), (178, 84, 44)]):
-        d.rectangle([x0 + w * (0.16 + i * 0.17), hy - 14, x0 + w * (0.30 + i * 0.17),
-                     hy - 1], fill=col, outline=(30, 30, 34), width=1)
-    d.rectangle([x0 + w * 0.82, hy - 26, x0 + w * 0.90, hy - 1], fill=(235, 235, 230))
-    d.rectangle([x0 + w * 0.84, hy - 32, x0 + w * 0.88, hy - 26], fill=(178, 34, 34))
+    for wy in (15, 18, 22, 25):
+        for wx in (5, 29, 53, 77):
+            g.point((wx - 2, wy), fill=(220, 235, 245))
+            g.point((wx - 1, wy + 1), fill=(220, 235, 245))
+            g.point((wx, wy + 1), fill=(220, 235, 245))
+            g.point((wx + 1, wy + 1), fill=(220, 235, 245))
+            g.point((wx + 2, wy), fill=(220, 235, 245))
+    # smoke + flame at the stern
+    for cx, cy, r in [(11, 5, 4), (14, 2, 4), (9, 2, 3)]:
+        g.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(105, 108, 114))
+    g.polygon([(10, 15), (12, 8), (13, 12), (14, 9), (15, 15)],
+              fill=(255, 150, 50))
+    g.polygon([(11, 15), (12, 11), (14, 15)], fill=(255, 220, 90))
+    # hull + name + containers + bridge
+    g.polygon([(8, 17), (88, 17), (83, 22), (13, 22)], fill=(40, 44, 52))
+    px_text(g, 31, 18, "SPARTA II", FONT35, (240, 240, 235))
+    for i, col in enumerate([(178, 84, 44), (52, 96, 150), (90, 140, 70),
+                             (178, 84, 44)]):
+        g.rectangle([15 + i * 16, 10, 28 + i * 16, 16], fill=col,
+                    outline=(30, 30, 34))
+    g.rectangle([79, 4, 86, 16], fill=(235, 235, 230))
+    g.rectangle([81, 1, 84, 4], fill=(178, 34, 34))
     # lifeboat
-    lx, ly = x0 + w * 0.62, y0 + h * 0.86
-    d.polygon([(lx - 9, ly), (lx + 9, ly), (lx + 6, ly + 5), (lx - 6, ly + 5)],
-              fill=(255, 140, 40))
-    draw_chip(d, x0 + 30, y0 + 5, "16 SAFE", (46, 139, 87))
+    g.polygon([(55, 23), (64, 23), (63, 25), (56, 25)], fill=(255, 140, 40))
+    # chip
+    px_chip(g, 15, 2, "16 SAFE", (46, 139, 87))
+    px_paste(d, box, im)
 
 
 def paint_tehran(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (88, 66, 122), (255, 150, 80))
-    d._image.paste(g, (int(x0), int(y0)))
+    """Tehran at dusk: Milad Tower, skyline, lightbulb — pixel art."""
+    im, g = px_canvas(96, 27, (255, 150, 80))
+    # dusk bands: purple top, orange bottom, checkerboard seam
+    g.rectangle([0, 0, 96, 12], fill=(88, 66, 122))
+    for xx in range(96):
+        if xx % 2 == 0:
+            g.point((xx, 12), fill=(255, 150, 80))
     # Milad Tower
-    tx = x0 + w * 0.68
-    d.polygon([(tx - 5, y1 - h * 0.10), (tx - 1.5, y0 + 8), (tx + 1.5, y0 + 8),
-               (tx + 5, y1 - h * 0.10)], fill=(52, 44, 66))
-    d.ellipse([tx - 7, y0 + 10, tx + 7, y0 + 22], fill=(72, 60, 88))
-    d.ellipse([tx - 2, y0 + 4, tx + 2, y0 + 8], fill=(255, 190, 90))
-    # skyline, mostly dark
-    base = y1 - h * 0.10
-    for fx, fh, fw_ in [(0.00, 0.30, 0.12), (0.13, 0.42, 0.10), (0.24, 0.34, 0.12),
-                        (0.38, 0.50, 0.12), (0.52, 0.36, 0.10), (0.78, 0.44, 0.12),
-                        (0.90, 0.32, 0.10)]:
-        d.rectangle([x0 + w * fx, base - h * fh, x0 + w * (fx + fw_), base],
-                    fill=(48, 40, 60))
-    # one lit window in the dark
-    d.rectangle([x0 + w * 0.40, base - h * 0.34, x0 + w * 0.42, base - h * 0.28],
-                fill=(255, 210, 110))
+    g.polygon([(60, 24), (64, 4), (66, 4), (70, 24)], fill=(52, 44, 66))
+    g.ellipse([58, 5, 72, 11], fill=(72, 60, 88))
+    g.rectangle([63, 2, 67, 4], fill=(255, 190, 90))
+    # skyline
+    for fx, fh, fw in [(0, 8, 12), (12, 11, 10), (23, 9, 12), (36, 13, 12),
+                       (50, 10, 10), (75, 12, 12), (86, 9, 10)]:
+        g.rectangle([fx, 24 - fh, fx + fw, 24], fill=(48, 40, 60))
+    # one lit window
+    g.rectangle([38, 15, 40, 16], fill=(255, 210, 110))
     # lightbulb, top left
-    bx, by = x0 + w * 0.14, y0 + h * 0.24
-    d.ellipse([bx - 7, by - 8, bx + 7, by + 6], outline=(255, 235, 180), width=2)
-    d.line([bx - 3, by + 6, bx + 3, by + 6], fill=(255, 235, 180), width=2)
-    d.line([bx - 3, by + 9, bx + 3, by + 9], fill=(255, 235, 180), width=2)
-    d.line([bx - 7, by - 12, bx - 10, by - 16], fill=(255, 235, 180), width=1)
-    d.line([bx + 7, by - 12, bx + 10, by - 16], fill=(255, 235, 180), width=1)
-    d.line([bx, by - 13, bx, by - 17], fill=(255, 235, 180), width=1)
-    draw_chip(d, x0 + w * 0.52, y0 + 5, "UP TO 2 HRS", (20, 20, 31))
+    bx, by = 13, 6
+    g.ellipse([bx - 3, by - 4, bx + 3, by + 3], outline=(255, 235, 180))
+    g.rectangle([bx - 1, by + 3, bx + 1, by + 4], fill=(255, 235, 180))
+    g.rectangle([bx - 1, by + 5, bx + 1, by + 5], fill=(255, 235, 180))
+    g.point((bx - 3, by - 6), fill=(255, 235, 180))
+    g.point((bx + 3, by - 6), fill=(255, 235, 180))
+    g.point((bx, by - 7), fill=(255, 235, 180))
+    # chip (starts at 43: the pixel chip is wider than the old smooth one)
+    px_chip(g, 43, 2, "UP TO 2 HRS", (20, 20, 31))
+    px_paste(d, box, im)
 
 
 def paint_gaza(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    # sea left, sand right, coastline diagonal
-    d.rectangle([x0, y0, x1, y1], fill=(224, 211, 178))
-    d.polygon([(x0, y0), (x0 + w * 0.42, y0), (x0 + w * 0.30, y1), (x0, y1)],
-              fill=(146, 186, 214))
-    d.line([x0 + w * 0.42, y0, x0 + w * 0.30, y1], fill=(240, 240, 235), width=2)
+    """Gaza coast: sea, sand, strip outline, aid truck — pixel art."""
+    im, g = px_canvas(96, 27, (224, 211, 178))
+    # sea left, coastline diagonal
+    g.polygon([(0, 0), (40, 0), (29, 27), (0, 27)], fill=(146, 186, 214))
+    g.line([(40, 0), (29, 27)], fill=(240, 240, 235), width=1)
     # Gaza strip outline (thin coastal strip)
-    d.polygon([(x0 + w * 0.44, y0 + 4), (x0 + w * 0.56, y0 + 4),
-               (x0 + w * 0.50, y1 - 4), (x0 + w * 0.38, y1 - 4)],
-              outline=RED, width=2)
-    d.text((x0 + w * 0.58, y0 + 6), "GAZA", font=IN(7), fill=INK_SOFT)
+    g.polygon([(42, 2), (54, 2), (48, 25), (37, 25)], outline=RED)
+    px_text(g, 56, 3, "GAZA", FONT35, INK_SOFT)
     # aid truck on the road
-    tx, ty = x0 + w * 0.52, y1 - h * 0.34
-    d.rectangle([tx, ty - 12, tx + 34, ty + 2], fill=(245, 245, 240),
-                outline=(120, 120, 115), width=1)
-    d.rectangle([tx + 34, ty - 8, tx + 44, ty + 2], fill=(200, 205, 210),
-                outline=(120, 120, 115), width=1)
-    d.rectangle([tx + 14, ty - 9, tx + 20, ty - 3], fill=RED)
-    d.rectangle([tx + 16, ty - 11, tx + 18, ty - 1], fill=RED)
-    d.ellipse([tx + 6, ty, tx + 12, ty + 6], fill=(20, 20, 24))
-    d.ellipse([tx + 26, ty, tx + 32, ty + 6], fill=(20, 20, 24))
-    d.ellipse([tx + 38, ty, tx + 44, ty + 6], fill=(20, 20, 24))
-    draw_chip(d, x0 + 30, y0 + 5, "3 KILLED", RED)
+    tx, ty = 50, 18
+    g.rectangle([tx, ty - 6, tx + 17, ty + 1], fill=(245, 245, 240),
+                outline=(120, 120, 115))
+    g.rectangle([tx + 17, ty - 4, tx + 22, ty + 1], fill=(200, 205, 210),
+                outline=(120, 120, 115))
+    g.rectangle([tx + 7, ty - 5, tx + 10, ty - 2], fill=RED)
+    g.rectangle([tx + 8, ty - 6, tx + 9, ty - 1], fill=RED)
+    g.rectangle([tx + 3, ty, tx + 5, ty + 3], fill=(20, 20, 24))
+    g.rectangle([tx + 13, ty, tx + 15, ty + 3], fill=(20, 20, 24))
+    g.rectangle([tx + 19, ty, tx + 21, ty + 3], fill=(20, 20, 24))
+    # chip
+    px_chip(g, 15, 2, "3 KILLED", RED)
+    px_paste(d, box, im)
 
 
 # ---------------------------------------------------------------- stories
