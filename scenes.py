@@ -132,6 +132,24 @@ F5 = {
     "9": ("01110", "10001", "10001", "01111", "00001", "00001", "01110"),
     " ": ("00000", "00000", "00000", "00000", "00000", "00000", "00000"),
 }
+F5.update({
+    "C": ("01110", "10001", "10000", "10000", "10000", "10001", "01110"),
+    "D": ("11110", "10001", "10001", "10001", "10001", "10001", "11110"),
+    "E": ("11111", "10000", "10000", "11110", "10000", "10000", "11111"),
+    "F": ("11111", "10000", "10000", "11110", "10000", "10000", "10000"),
+    "H": ("10001", "10001", "10001", "11111", "10001", "10001", "10001"),
+    "K": ("10001", "10010", "10100", "11000", "10100", "10010", "10001"),
+    "L": ("10000", "10000", "10000", "10000", "10000", "10000", "11111"),
+    "M": ("10001", "11011", "10101", "10101", "10001", "10001", "10001"),
+    "N": ("10001", "11001", "10101", "10011", "10001", "10001", "10001"),
+    "O": ("01110", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "U": ("10001", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "V": ("10001", "10001", "10001", "10001", "01010", "01010", "00100"),
+    "/": ("00001", "00010", "00010", "00100", "01000", "01000", "10000"),
+    "%": ("11001", "11010", "00010", "00100", "01000", "10011", "10011"),
+    ".": ("00000", "00000", "00000", "00000", "00000", "01100", "01100"),
+    "–": ("00000", "00000", "00000", "01110", "00000", "00000", "00000"),
+})
 
 # ---------------------------------------------------------------- helpers
 # All drawing takes LOGICAL slot pixels; every primitive scales by S=2.
@@ -185,21 +203,21 @@ def TXT_C(g, cx, y, s, font, c):
 
 
 def CHIP(g, x, y, s, fill):
-    """Pixel chip, 18 logical px tall (same height as the page's chips),
-    F7 text centred by pixel bbox."""
-    tw = TXT_W(s, F7)
-    R(g, x, y, tw + 8, 18, fill)
-    TXT(g, x + 4, y + 4, s, F7, WHITE)
+    """Pixel chip, 13 logical px tall, F5 text (same small glyphs as the
+    lead's NO DEAL chip) — the F7 chips crowded the small scenes."""
+    tw = TXT_W(s, F5)
+    R(g, x, y, tw + 8, 13, fill)
+    TXT(g, x + 4, y + 3, s, F5, WHITE)
     return tw + 8
 
 
 def CHIP2(g, x, y, l1, l2, fill):
-    """Two-line pixel chip, 32 logical px tall, for a string too long for
-    one pixel line; the line break replaces the separator."""
-    w = max(TXT_W(l1, F7), TXT_W(l2, F7)) + 8
-    R(g, x, y, w, 32, fill)
-    TXT(g, x + 4, y + 3, l1, F7, WHITE)
-    TXT(g, x + 4, y + 18, l2, F7, WHITE)
+    """Two-line pixel chip, 24 logical px tall, F5 text; the line break
+    replaces the separator."""
+    w = max(TXT_W(l1, F5), TXT_W(l2, F5)) + 8
+    R(g, x, y, w, 24, fill)
+    TXT(g, x + 4, y + 3, l1, F5, WHITE)
+    TXT(g, x + 4, y + 14, l2, F5, WHITE)
     return w
 
 
@@ -235,83 +253,95 @@ def region_map(w, h, lon0, lon1, lat0, lat1, sea, land):
 # Logical slot sizes: side cards 344x47 (drones) and 344x45 (bahrain);
 # grid cards 192x54. Each scene is drawn at 2x and downscaled by render.py.
 def scene_drones():
-    """Night over Ukraine: drones, bursts, a burning block. Slot 344x47."""
+    """Night over Ukraine: two BIG drones over a burning block. Slot 344x47."""
     im, g = cv(344, 47, (13, 27, 46))
-    R(g, 0, 18, 344, 16, (26, 51, 72))
-    R(g, 0, 36, 344, 1, (39, 75, 99))
-    # stars
-    for sx, sy in [(14, 6), (30, 3), (48, 8), (70, 4), (96, 7), (120, 3),
-                   (150, 6), (168, 2), (196, 7), (214, 3), (238, 6),
-                   (262, 2), (282, 8), (310, 4), (330, 7), (40, 12),
-                   (180, 12), (250, 11)]:
+    # sparse stars
+    for sx, sy in [(14, 6), (30, 3), (48, 8), (150, 6), (196, 7), (262, 2),
+                   (282, 8), (310, 4), (330, 7), (180, 12)]:
         P(g, sx, sy, (220, 225, 235))
-    # crescent moon
-    EL(g, 296, 4, 308, 16, (232, 228, 205))
-    EL(g, 300, 4, 310, 16, (13, 27, 46))
-    # drones: small X with a red and a green light
-    for dx, dy in [(56, 14), (90, 20), (144, 10), (180, 8), (228, 18),
-                   (260, 14), (290, 24), (320, 18)]:
-        P(g, dx - 3, dy - 3, (200, 205, 215))
-        P(g, dx + 3, dy - 3, (200, 205, 215))
-        P(g, dx - 3, dy + 3, (200, 205, 215))
-        P(g, dx + 3, dy + 3, (200, 205, 215))
-        R(g, dx - 1, dy - 1, 2, 2, (230, 230, 230))
-        P(g, dx - 5, dy, (255, 60, 50))
-        P(g, dx + 5, dy, (80, 220, 120))
-    # interception bursts
-    for bx, by in [(104, 26), (200, 22), (248, 30), (300, 28)]:
-        glow(g, bx - 8, by - 8, bx + 9, by + 9, (255, 170, 60))
-        for ox, oy in [(0, -6), (0, 6), (-6, 0), (6, 0), (-4, -4), (4, -4),
-                       (-4, 4), (4, 4)]:
-            P(g, bx + ox, by + oy, (255, 205, 90))
-        R(g, bx - 2, by - 2, 4, 4, (255, 230, 150))
+    # crescent moon, top right
+    EL(g, 322, 4, 334, 16, (232, 228, 205))
+    EL(g, 326, 4, 334, 16, (13, 27, 46))
+    # BIG drone A (left): body, arms, 4 rotor discs, lights, camera
+    R(g, 78, 14, 36, 8, (200, 205, 215))
+    LN(g, [(80, 16), (64, 6)], (180, 185, 195), w=2)
+    LN(g, [(112, 16), (128, 6)], (180, 185, 195), w=2)
+    LN(g, [(80, 20), (64, 30)], (180, 185, 195), w=2)
+    LN(g, [(112, 20), (128, 30)], (180, 185, 195), w=2)
+    for rx, ry in [(56, 2), (122, 2), (56, 26), (122, 26)]:
+        EL(g, rx, ry, rx + 16, ry + 6, (140, 145, 155), o=(90, 95, 105))
+    P(g, 74, 18, (255, 60, 50))
+    P(g, 116, 18, (80, 220, 120))
+    R(g, 92, 22, 8, 4, (40, 44, 52))
+    # BIG drone B (right, slightly higher)
+    R(g, 222, 9, 32, 7, (200, 205, 215))
+    LN(g, [(224, 11), (210, 3)], (180, 185, 195), w=2)
+    LN(g, [(252, 11), (266, 3)], (180, 185, 195), w=2)
+    LN(g, [(224, 14), (210, 22)], (180, 185, 195), w=2)
+    LN(g, [(252, 14), (266, 22)], (180, 185, 195), w=2)
+    for rx, ry in [(203, 0), (259, 0), (203, 19), (259, 19)]:
+        EL(g, rx, ry, rx + 14, ry + 5, (140, 145, 155), o=(90, 95, 105))
+    P(g, 218, 12, (255, 60, 50))
+    P(g, 256, 12, (80, 220, 120))
+    # interception burst near drone B
+    bx, by = 292, 14
+    for ox, oy in [(0, -7), (0, 7), (-7, 0), (7, 0), (-5, -5), (5, -5),
+                   (-5, 5), (5, 5)]:
+        P(g, bx + ox, by + oy, (255, 205, 90))
+    R(g, bx - 2, by - 2, 5, 5, (255, 230, 150))
     # ground: city silhouette with lit windows
     R(g, 0, 38, 344, 9, (10, 16, 26))
     for bx, bw, bh in [(6, 34, 6), (20, 24, 4), (48, 28, 4), (82, 42, 8),
-                       (110, 20, 5), (140, 26, 7), (178, 32, 6),
-                       (216, 38, 8), (250, 30, 5), (280, 22, 4),
+                       (110, 20, 5), (216, 38, 8), (250, 30, 5), (280, 22, 4),
                        (302, 34, 6), (320, 26, 6)]:
         R(g, bx, 38 - bh, bw, bh, (16, 26, 40))
         for wy in range(2):
             for wx in range(bw // 10 + 1):
                 P(g, bx + 4 + wx * 10, 38 - bh + 2 + wy * 3, (255, 205, 110))
-    # the Dymer block, hit and burning
-    R(g, 130, 28, 34, 10, (24, 34, 50))
-    glow(g, 134, 22, 162, 30, (255, 120, 40))
-    P(g, 140, 24, (255, 150, 50))
-    P(g, 148, 22, (255, 220, 90))
-    P(g, 154, 24, (255, 150, 50))
-    R(g, 146, 25, 3, 3, (255, 200, 80))
+    # the Dymer block, hit and burning — big flames
+    R(g, 140, 28, 36, 10, (24, 34, 50))
+    PG(g, [(144, 28), (150, 14), (154, 24), (158, 12), (162, 24),
+           (168, 16), (174, 28)], (255, 150, 50))
+    PG(g, [(150, 28), (154, 20), (160, 28)], (255, 220, 90))
+    glow(g, 146, 10, 172, 16, (255, 120, 40))
     return im
 
 
 def scene_bahrain():
-    """The Gulf: Bahrain, two radar dishes, claim vs denial. Slot 344x45."""
-    im = region_map(344, 45, 47, 57, 24, 30, (185, 210, 226), (224, 211, 178))
-    g = ImageDraw.Draw(im)
-    # Bahrain island marker
-    bx, by = 124, 30
-    EL(g, bx - 8, by - 8, bx + 8, by + 8, None, o=RED)
-    R(g, bx - 1, by - 1, 3, 3, RED)
-    # radar dishes at al-Riffa and Awali
-    for dx, dy in [(214, 20), (268, 26)]:
-        R(g, dx, dy + 2, 1, 8, (240, 240, 235))
-        R(g, dx - 6, dy + 10, 13, 1, (240, 240, 235))
-        R(g, dx - 8, dy - 6, 17, 4, (245, 245, 240))
-        R(g, dx - 4, dy - 8, 9, 2, (245, 245, 240))
-        R(g, dx - 8, dy - 2, 17, 1, (120, 120, 115))
-    # claimed strike: dashed red line to a burst
-    ex, ey = 240, 14
+    """The Gulf: one BIG radar dish, Gulf coastline, Bahrain. Slot 344x45."""
+    im, g = cv(344, 45, (185, 210, 226))
+    # land: Saudi coast (top) with a bay; Qatar peninsula jutting from right
+    PG(g, [(0, 0), (344, 0), (344, 10), (316, 14), (300, 20), (286, 26),
+           (250, 28), (210, 24), (170, 18), (120, 14), (60, 12), (0, 16)],
+       (224, 211, 178))
+    PG(g, [(300, 20), (330, 16), (344, 20), (344, 34), (322, 32), (306, 26)],
+       (224, 211, 178))
+    # Bahrain island in the Gulf + marker ring
+    EL(g, 132, 28, 152, 40, (224, 211, 178))
+    EL(g, 124, 22, 160, 44, None, o=RED)
+    R(g, 140, 32, 4, 4, RED)
+    # headland under the dish so its base stands on land
+    PG(g, [(236, 30), (284, 30), (280, 45), (240, 45)], (224, 211, 178))
+    # BIG radar dish (right, on the coast): a real bowl, feed mast, pedestal
+    PG(g, [(302, 6), (301, 12), (297, 17), (290, 22), (282, 25), (272, 27),
+           (262, 28), (252, 27), (242, 25), (234, 22), (227, 17), (223, 12),
+           (222, 6)], (245, 245, 240), o=(120, 120, 115))
+    LN(g, [(262, 28), (262, 5)], (120, 120, 115), w=2)
+    R(g, 258, 1, 8, 4, (200, 200, 195))
+    R(g, 258, 28, 8, 10, (200, 200, 195))
+    R(g, 248, 38, 28, 3, (200, 200, 195))
+    # claimed strike: dashed red line from Bahrain to a burst near the dish
     for t in range(0, 21, 3):
-        px = int(bx + (ex - bx) * t / 20)
-        py = int(by + (ey - by) * t / 20)
+        px = int(142 + (214 - 142) * t / 20)
+        py = int(34 + (14 - 34) * t / 20)
         R(g, px, py, 3, 3, RED)
+    ex, ey = 214, 14
     for ox, oy in [(0, -6), (0, 6), (-6, 0), (6, 0), (-4, -4), (4, -4),
                    (-4, 4), (4, 4)]:
         P(g, ex + ox, ey + oy, (255, 180, 80))
     R(g, ex - 2, ey - 2, 4, 4, (255, 230, 150))
-    # chip top-left, clear of the marker ring
-    CHIP(g, 38, 4, "CLAIM VS DENIAL", RED)
+    # chip top-left
+    CHIP(g, 8, 3, "CLAIM VS DENIAL", RED)
     return im
 
 
@@ -374,7 +404,7 @@ def scene_cricket():
     R(g, 130, 40, 4, 4, (178, 34, 34))
     P(g, 130, 40, WHITE)
     # scoreboard chip top right
-    CHIP(g, 192 - 6 - (TXT_W("720/9", F7) + 8), 4, "720/9", DARK)
+    CHIP(g, 192 - 6 - (TXT_W("720/9", F5) + 8), 4, "720/9", DARK)
     TXT(g, 6, 44, "RECORD TOTAL", F7, (235, 235, 225))
     return im
 
