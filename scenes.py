@@ -341,7 +341,7 @@ def scene_bahrain():
         P(g, ex + ox, ey + oy, (255, 180, 80))
     R(g, ex - 2, ey - 2, 4, 4, (255, 230, 150))
     # chip top-left
-    CHIP(g, 8, 3, "CLAIM VS DENIAL", RED)
+    CHIP(g, 24, 3, "CLAIM VS DENIAL", RED)
     return im
 
 
@@ -381,7 +381,7 @@ def scene_hk():
     LN(g, [(146, 24), (156, 34)], RED, w=2)
     LN(g, [(156, 34), (174, 10)], RED, w=2)
     # turnout chip
-    CHIP(g, 6, 3, "98.79%", DARK)
+    CHIP(g, 24, 3, "98.79%", DARK)
     return im
 
 
@@ -416,8 +416,8 @@ def scene_f1():
     im, g = cv(192, 54, (12, 18, 40))
     R(g, 0, 20, 192, 16, (30, 26, 52))
     # Stratosphere needle (clear of the chip, right of it)
-    PG(g, [(106, 38), (111, 4), (118, 38)], (70, 64, 100))
-    R(g, 104, 2, 16, 4, (255, 190, 90))
+    PG(g, [(124, 38), (129, 4), (134, 38)], (70, 64, 100))
+    R(g, 122, 2, 16, 4, (255, 190, 90))
     # hotel blocks with lit windows
     for fx, fh, fw in [(34, 16, 24), (64, 12, 22), (140, 14, 24),
                        (168, 18, 24)]:
@@ -450,7 +450,7 @@ def scene_f1():
                 R(g, fx0 + c * 4, fy0 + r * 4, 4, 4, (20, 20, 20))
     R(g, fx0, fy0, 1, 22, (220, 220, 215))
     # chip
-    CHIP(g, 6, 3, "35 LEAD CHANGES", DARK)
+    CHIP(g, 24, 3, "35 LEAD CHANGES", DARK)
     return im
 
 
@@ -502,7 +502,7 @@ def scene_football():
     EL(g, 70, 26, 88, 44, (250, 250, 245), o=(30, 30, 30))
     R(g, 77, 32, 6, 6, (30, 30, 30))
     # scoreboard chip
-    CHIP(g, 6, 3, "4–0", DARK)
+    CHIP(g, 24, 3, "4–0", DARK)
     return im
 
 
@@ -524,7 +524,7 @@ def scene_manipur():
         R(g, cx - 1, cy - 6, 3, 12, RED)
         R(g, cx - 6, cy - 1, 12, 3, RED)
     # toll chip
-    CHIP(g, 6, 3, "17 DEAD", RED)
+    CHIP(g, 24, 3, "17 DEAD", RED)
     return im
 
 
@@ -552,12 +552,12 @@ def scene_cikande():
         for wx in range(6):
             R(g, 16 + wx * 28, 30 + wy * 12, 4, 4, (255, 205, 110))
     # flames, BIG and clear of the chip (right side)
-    for cx in (96, 128, 158):
+    for cx in (102, 132, 160):
         PG(g, [(cx - 8, 26), (cx, 8), (cx + 5, 22), (cx + 9, 12),
                (cx + 11, 26)], (255, 150, 50))
         PG(g, [(cx - 3, 26), (cx, 16), (cx + 5, 26)], (255, 220, 90))
     # casualty chip top-left (two lines, F5)
-    CHIP2(g, 8, 3, "3 DEAD", "36 MISSING", RED)
+    CHIP2(g, 24, 3, "3 DEAD", "36 MISSING", RED)
     return im
 
 
@@ -627,7 +627,7 @@ def scene_tehran():
     P(g, bx + 6, by - 12, (255, 235, 180))
     P(g, bx, by - 14, (255, 235, 180))
     # chip top-left
-    CHIP(g, 6, 3, "UP TO 2 HRS", DARK)
+    CHIP(g, 24, 3, "UP TO 2 HRS", DARK)
     return im
 
 
@@ -652,7 +652,7 @@ def scene_gaza():
     R(g, tx + 30, ty + 2, 6, 8, (20, 20, 24))
     R(g, tx + 48, ty + 2, 6, 8, (20, 20, 24))
     # chip
-    CHIP(g, 6, 3, "3 KILLED", RED)
+    CHIP(g, 24, 3, "3 KILLED", RED)
     return im
 
 
