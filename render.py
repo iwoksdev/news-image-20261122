@@ -527,161 +527,33 @@ def paint_bahrain(d, box):
 
 
 def paint_hk(d, box):
-    """Hong Kong at dusk: skyline, water, ballot box — pixel art."""
-    im, g = px_canvas(96, 27, (255, 176, 110))
-    # dusk bands: orange, checkerboard seam, purple, water
-    for yy in range(8, 14):
-        for xx in range(96):
-            if (xx + yy) % 2 == 0:
-                g.point((xx, yy), fill=(74, 52, 104))
-    g.rectangle([0, 14, 96, 18], fill=(74, 52, 104))
-    g.rectangle([0, 19, 96, 27], fill=(46, 64, 96))
-    # sun, top right
-    g.rectangle([79, 3, 83, 7], fill=(255, 214, 140))
-    # skyline silhouettes
-    for fx, fh, fw in [(0, 9, 10), (11, 11, 9), (21, 8, 10), (32, 15, 9),
-                       (42, 10, 9), (52, 12, 10), (63, 9, 9), (73, 11, 10),
-                       (84, 8, 12)]:
-        g.rectangle([fx, 19 - fh, fx + fw, 19], fill=(42, 36, 56))
-    # Bank of China: triangular top
-    g.polygon([(38, 15), (43, 4), (48, 15)], fill=(42, 36, 56))
-    g.rectangle([43, 4, 43, 15], fill=(255, 214, 140))
-    # lit windows
-    for wx, wy in [(5, 12), (14, 10), (24, 13), (35, 9), (46, 12), (56, 10),
-                   (66, 13), (76, 11), (88, 12), (18, 15), (58, 15), (80, 15)]:
-        g.point((wx, wy), fill=(255, 214, 140))
-    # water glints
-    for wx in (10, 34, 58, 82):
-        g.rectangle([wx, 25, wx + 7, 25], fill=(255, 214, 140))
-    # ballot box, front right
-    g.rectangle([69, 15, 82, 24], fill=(245, 242, 235), outline=(120, 110, 95))
-    g.rectangle([72, 16, 79, 16], fill=INK)
-    for i in range(8):
-        g.point((77 + i, 8 + i), fill=RED)
-    for i in range(10):
-        g.point((82 + i, 15 - i), fill=RED)
-    # turnout chip
-    px_chip(g, 15, 2, "98.79%", (20, 20, 31))
-    px_paste(d, box, im)
+    """Hong Kong at dusk — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "hk.png")
+
 
 
 def paint_cricket(d, box):
-    """Wellington: green outfield, pitch, stumps, bat and ball — pixel art."""
-    im, g = px_canvas(96, 27, (58, 122, 66))
-    g.ellipse([-10, -15, 106, 42], outline=(230, 235, 220))
-    # pitch strip
-    g.rectangle([29, 2, 67, 25], fill=(196, 172, 120))
-    g.rectangle([29, 2, 29, 25], fill=(245, 242, 235))
-    g.rectangle([67, 2, 67, 25], fill=(245, 242, 235))
-    # stumps + bails
-    for dx in (0, 2, 4):
-        g.rectangle([35 + dx, 6, 35 + dx, 13], fill=(240, 210, 90))
-    g.rectangle([35, 5, 39, 5], fill=(240, 210, 90))
-    # bat + ball
-    g.polygon([(50, 9), (54, 8), (60, 17), (56, 18)], fill=(150, 105, 60))
-    g.rectangle([51, 4, 52, 9], fill=(150, 105, 60))
-    g.rectangle([65, 20, 67, 22], fill=(178, 34, 34))
-    g.point((65, 20), fill=(255, 255, 255))
-    # scoreboard chip top right
-    px_chip(g, 96 - 3 - (px_text_w("720/9", FONT35) + 7), 2, "720/9",
-            (20, 20, 31))
-    px_text(g, 3, 23, "RECORD TOTAL", FONT35, (235, 235, 225))
-    px_paste(d, box, im)
+    """Wellington cricket — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "cricket.png")
+
 
 
 def paint_f1(d, box):
-    """Las Vegas at night: Stratosphere, hotel blocks, track, car — pixel art."""
-    im, g = px_canvas(96, 27, (12, 18, 40))
-    g.rectangle([0, 10, 96, 18], fill=(30, 26, 52))
-    # Stratosphere needle
-    g.polygon([(10, 19), (11, 3), (13, 19)], fill=(30, 26, 52))
-    g.rectangle([9, 2, 13, 4], fill=(255, 190, 90))
-    # hotel blocks with lit windows
-    for fx, fh, fw in [(19, 9, 13), (35, 7, 12), (48, 11, 15), (65, 8, 12),
-                       (79, 10, 13)]:
-        g.rectangle([fx, 19 - fh, fx + fw, 19], fill=(36, 30, 60))
-        for wy in range(3):
-            for wx in range(3):
-                g.point((fx + 2 + wx * 4, 19 - fh + 2 + wy * 3),
-                        fill=(255, 200, 110))
-    # track
-    g.rectangle([0, 19, 96, 27], fill=(52, 52, 58))
-    g.rectangle([0, 23, 96, 23], fill=(240, 240, 235))
-    for tx in range(0, 12):
-        g.rectangle([tx * 8, 23, tx * 8 + 4, 23], fill=(240, 240, 235))
-    # race car
-    cx, cy = 50, 21
-    g.rectangle([cx - 13, cy - 3, cx + 13, cy + 1], fill=(178, 34, 34))
-    g.polygon([(cx - 15, cy - 4), (cx - 11, cy - 4), (cx - 10, cy - 2),
-               (cx - 15, cy - 2)], fill=(120, 20, 20))
-    g.rectangle([cx - 10, cy, cx - 5, cy + 4], fill=(15, 15, 18))
-    g.rectangle([cx + 5, cy, cx + 10, cy + 4], fill=(15, 15, 18))
-    g.rectangle([cx - 1, cy - 4, cx + 4, cy - 1], fill=(30, 30, 36))
-    # checkered flag (shifted right so the wide pixel chip clears it)
-    fx0, fy0 = 85, 3
-    for r in range(3):
-        for c in range(4):
-            if (r + c) % 2 == 0:
-                g.rectangle([fx0 + c * 2, fy0 + r * 2,
-                             fx0 + c * 2 + 1, fy0 + r * 2 + 1],
-                            fill=(20, 20, 20))
-    g.rectangle([fx0, fy0, fx0, fy0 + 11], fill=(220, 220, 215))
-    # chip
-    px_chip(g, 15, 2, "35 LEAD CHANGES", (20, 20, 31))
-    px_paste(d, box, im)
+    """Las Vegas F1 — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "f1.png")
+
 
 
 def paint_tennis(d, box):
-    """Turin: blue court, net, ball, trophy — pixel art."""
-    im, g = px_canvas(96, 27, (47, 111, 178))
-    g.rectangle([4, 3, 92, 24], outline=(240, 240, 235))
-    g.rectangle([4, 13, 92, 13], fill=(240, 240, 235))
-    g.rectangle([31, 3, 31, 24], fill=(240, 240, 235))
-    g.rectangle([65, 3, 65, 24], fill=(240, 240, 235))
-    # net
-    g.rectangle([4, 11, 92, 14], fill=(235, 235, 228))
-    for nx in range(8, 88, 4):
-        g.rectangle([nx, 11, nx, 14], fill=(120, 120, 115))
-    g.rectangle([3, 10, 5, 15], fill=(30, 30, 34))
-    g.rectangle([91, 10, 93, 15], fill=(30, 30, 34))
-    # ball
-    g.ellipse([20, 5, 26, 11], fill=(204, 255, 0), outline=(255, 255, 255))
-    g.point((23, 5), fill=(255, 255, 255))
-    g.point((23, 11), fill=(255, 255, 255))
-    # trophy
-    tx, ty = 79, 17
-    g.polygon([(tx - 5, ty - 6), (tx + 5, ty - 6), (tx + 3, ty + 1),
-               (tx - 3, ty + 1)], fill=(212, 175, 55))
-    g.rectangle([tx - 7, ty - 6, tx - 5, ty - 2], fill=(212, 175, 55))
-    g.rectangle([tx + 5, ty - 6, tx + 7, ty - 2], fill=(212, 175, 55))
-    g.rectangle([tx, ty + 1, tx, ty + 5], fill=(212, 175, 55))
-    g.rectangle([tx - 4, ty + 5, tx + 4, ty + 7], fill=(212, 175, 55))
-    px_text(g, 3, 23, "MAIDEN TITLE", FONT35, (235, 235, 225))
-    px_paste(d, box, im)
+    """Turin tennis — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "tennis.png")
+
 
 
 def paint_football(d, box):
-    """Anfield: green pitch, goal, ball, 4-0 — pixel art."""
-    im, g = px_canvas(96, 27, (46, 125, 62))
-    g.rectangle([3, 2, 93, 25], outline=(240, 240, 235))
-    g.rectangle([48, 2, 48, 25], fill=(240, 240, 235))
-    g.ellipse([42, 8, 54, 20], outline=(240, 240, 235))
-    g.rectangle([3, 8, 25, 19], outline=(240, 240, 235))
-    g.rectangle([71, 8, 93, 19], outline=(240, 240, 235))
-    # goal + net
-    gx0, gy0 = 75, 8
-    g.rectangle([gx0, gy0, gx0 + 15, gy0 + 10], outline=(255, 255, 255))
-    for i in range(1, 4):
-        g.rectangle([gx0 + i * 4, gy0, gx0 + i * 4, gy0 + 10],
-                    fill=(220, 220, 215))
-        g.rectangle([gx0, gy0 + i * 3, gx0 + 15, gy0 + i * 3],
-                    fill=(220, 220, 215))
-    # ball
-    g.ellipse([37, 14, 43, 20], fill=(250, 250, 245), outline=(30, 30, 30))
-    g.rectangle([39, 16, 41, 18], fill=(30, 30, 30))
-    # scoreboard chip
-    px_chip(g, 15, 2, "4–0", (20, 20, 31))
-    px_paste(d, box, im)
+    """Anfield football — pre-rendered high-res pixel scene (scenes.py)."""
+    _scene(d, box, "football.png")
+
 
 
 def paint_manipur(d, box):
