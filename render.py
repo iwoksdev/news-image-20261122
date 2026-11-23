@@ -563,182 +563,167 @@ def paint_bahrain(d, box):
         g.point((ex + ox, ey + oy), fill=(255, 180, 80))
     g.rectangle([ex - 1, ey - 1, ex + 1, ey + 1], fill=(255, 230, 150))
     # chip top-left: the pixel chip is wider than the old smooth one, so it
-    # moves up here to keep clear of the Bahrain marker ring; x=19 clears
-    # the number disc draw_side_card paints over the scene's top-left.
+    # moves up here to keep clear of the Bahrain marker ring.
     px_chip(g, 19, 2, "CLAIM VS DENIAL", RED)
     px_paste(d, box, im)
 
 
 def paint_hk(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (255, 176, 110), (74, 52, 104))
-    d._image.paste(g, (int(x0), int(y0)))
-    d.ellipse([x0 + w * 0.82, y0 + h * 0.12, x0 + w * 0.82 + 16, y0 + h * 0.12 + 16],
-              fill=(255, 214, 140))
+    """Hong Kong at dusk: skyline, water, ballot box — pixel art."""
+    im, g = px_canvas(96, 27, (255, 176, 110))
+    # dusk bands: orange, checkerboard seam, purple, water
+    for yy in range(8, 14):
+        for xx in range(96):
+            if (xx + yy) % 2 == 0:
+                g.point((xx, yy), fill=(74, 52, 104))
+    g.rectangle([0, 14, 96, 18], fill=(74, 52, 104))
+    g.rectangle([0, 19, 96, 27], fill=(46, 64, 96))
+    # sun, top right
+    g.rectangle([79, 3, 83, 7], fill=(255, 214, 140))
     # skyline silhouettes
-    base = y1 - h * 0.18
-    towers = [(0.00, 0.34, 0.52), (0.13, 0.42, 0.62), (0.26, 0.30, 0.44),
-              (0.38, 0.55, 0.78), (0.52, 0.38, 0.58), (0.64, 0.48, 0.70),
-              (0.78, 0.32, 0.46), (0.88, 0.40, 0.56)]
-    for fx, fh, fw_ in towers:
-        d.rectangle([x0 + w * fx, base - h * fh, x0 + w * (fx + fw_), base],
-                    fill=(42, 36, 56))
+    for fx, fh, fw in [(0, 9, 10), (11, 11, 9), (21, 8, 10), (32, 15, 9),
+                       (42, 10, 9), (52, 12, 10), (63, 9, 9), (73, 11, 10),
+                       (84, 8, 12)]:
+        g.rectangle([fx, 19 - fh, fx + fw, 19], fill=(42, 36, 56))
     # Bank of China: triangular top
-    d.polygon([(x0 + w * 0.38, base - h * 0.55), (x0 + w * 0.44, base - h * 0.80),
-               (x0 + w * 0.50, base - h * 0.55)], fill=(42, 36, 56))
-    d.line([x0 + w * 0.44, base - h * 0.80, x0 + w * 0.44, base - h * 0.55],
-           fill=(255, 214, 140), width=1)
-    for wx in (0.05, 0.18, 0.30, 0.45, 0.58, 0.70, 0.83, 0.93):
-        for wy in (0.62, 0.72, 0.82):
-            d.rectangle([x0 + w * wx, y0 + h * wy, x0 + w * wx + 2, y0 + h * wy + 2],
-                        fill=(255, 214, 140))
-    # water
-    d.rectangle([x0, base, x1, y1], fill=(46, 64, 96))
-    for wx in (0.10, 0.35, 0.60, 0.85):
-        d.line([x0 + w * wx, y1 - 4, x0 + w * (wx + 0.08), y1 - 4],
-               fill=(255, 214, 140), width=1)
+    g.polygon([(38, 15), (43, 4), (48, 15)], fill=(42, 36, 56))
+    g.rectangle([43, 4, 43, 15], fill=(255, 214, 140))
+    # lit windows
+    for wx, wy in [(5, 12), (14, 10), (24, 13), (35, 9), (46, 12), (56, 10),
+                   (66, 13), (76, 11), (88, 12), (18, 15), (58, 15), (80, 15)]:
+        g.point((wx, wy), fill=(255, 214, 140))
+    # water glints
+    for wx in (10, 34, 58, 82):
+        g.rectangle([wx, 25, wx + 7, 25], fill=(255, 214, 140))
     # ballot box, front right
-    bx0, by0 = x0 + w * 0.72, y1 - h * 0.42
-    d.rectangle([bx0, by0, bx0 + 26, by0 + 18], fill=(245, 242, 235),
-                outline=(120, 110, 95), width=1)
-    d.line([bx0 + 6, by0 + 2, bx0 + 20, by0 + 2], fill=INK, width=2)
-    d.line([bx0 + 8, by0 - 8, bx0 + 13, by0 - 1, bx0 + 22, by0 - 12],
-           fill=RED, width=3)
+    g.rectangle([69, 15, 82, 24], fill=(245, 242, 235), outline=(120, 110, 95))
+    g.rectangle([72, 16, 79, 16], fill=INK)
+    for i in range(8):
+        g.point((77 + i, 8 + i), fill=RED)
+    for i in range(10):
+        g.point((82 + i, 15 - i), fill=RED)
     # turnout chip
-    draw_chip(d, x0 + 30, y0 + 5, "98.79%", (20, 20, 31))
+    px_chip(g, 15, 2, "98.79%", (20, 20, 31))
+    px_paste(d, box, im)
 
 
 def paint_cricket(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    d.rectangle([x0, y0, x1, y1], fill=(58, 122, 66))
-    d.ellipse([x0 - 20, y0 - 30, x1 + 20, y1 + 30], outline=(230, 235, 220), width=2)
+    """Wellington: green outfield, pitch, stumps, bat and ball — pixel art."""
+    im, g = px_canvas(96, 27, (58, 122, 66))
+    g.ellipse([-10, -15, 106, 42], outline=(230, 235, 220))
     # pitch strip
-    d.rectangle([x0 + w * 0.30, y0 + 4, x0 + w * 0.70, y1 - 4], fill=(196, 172, 120))
-    d.line([x0 + w * 0.30, y0 + 4, x0 + w * 0.30, y1 - 4], fill=(245, 242, 235), width=1)
-    d.line([x0 + w * 0.70, y0 + 4, x0 + w * 0.70, y1 - 4], fill=(245, 242, 235), width=1)
+    g.rectangle([29, 2, 67, 25], fill=(196, 172, 120))
+    g.rectangle([29, 2, 29, 25], fill=(245, 242, 235))
+    g.rectangle([67, 2, 67, 25], fill=(245, 242, 235))
     # stumps + bails
-    sx = x0 + w * 0.36
-    for dx in (0, 4, 8):
-        d.line([sx + dx, y0 + 12, sx + dx, y0 + 26], fill=(240, 210, 90), width=2)
-    d.line([sx, y0 + 11, sx + 8, y0 + 11], fill=(240, 210, 90), width=2)
+    for dx in (0, 2, 4):
+        g.rectangle([35 + dx, 6, 35 + dx, 13], fill=(240, 210, 90))
+    g.rectangle([35, 5, 39, 5], fill=(240, 210, 90))
     # bat + ball
-    d.polygon([(x0 + w * 0.52, y0 + 18), (x0 + w * 0.56, y0 + 16),
-               (x0 + w * 0.62, y0 + 34), (x0 + w * 0.58, y0 + 36)],
-              fill=(150, 105, 60))
-    d.line([x0 + w * 0.54, y0 + 18, x0 + w * 0.50, y0 + 8], fill=(150, 105, 60), width=3)
-    d.ellipse([x0 + w * 0.68, y0 + 40, x0 + w * 0.68 + 7, y0 + 47], fill=(178, 34, 34),
-              outline=(255, 255, 255), width=1)
-    # scoreboard, top right
-    cw = d.textlength("720/9", font=PT(12, "Bold")) + 12
-    draw_chip(d, x1 - 5 - cw, y0 + 5, "720/9", (20, 20, 31))
-    d.text((x0 + 6, y1 - 14), "RECORD TOTAL", font=IN(7), fill=(235, 235, 225))
+    g.polygon([(50, 9), (54, 8), (60, 17), (56, 18)], fill=(150, 105, 60))
+    g.rectangle([51, 4, 52, 9], fill=(150, 105, 60))
+    g.rectangle([65, 20, 67, 22], fill=(178, 34, 34))
+    g.point((65, 20), fill=(255, 255, 255))
+    # scoreboard chip top right
+    px_chip(g, 96 - 3 - (px_text_w("720/9", FONT35) + 7), 2, "720/9",
+            (20, 20, 31))
+    px_text(g, 3, 23, "RECORD TOTAL", FONT35, (235, 235, 225))
+    px_paste(d, box, im)
 
 
 def paint_f1(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    g = vgrad(w, h, (12, 18, 40), (48, 32, 74))
-    d._image.paste(g, (int(x0), int(y0)))
-    # Stratosphere needle + hotel blocks
-    d.polygon([(x0 + w * 0.10, y1 - h * 0.30), (x0 + w * 0.115, y0 + 6),
-               (x0 + w * 0.13, y1 - h * 0.30)], fill=(30, 26, 52))
-    d.ellipse([x0 + w * 0.095, y0 + 4, x0 + w * 0.135, y0 + 12], fill=(255, 190, 90))
-    for fx, fh, fw_ in [(0.20, 0.34, 0.14), (0.36, 0.26, 0.12), (0.50, 0.40, 0.16),
-                        (0.68, 0.30, 0.12), (0.82, 0.36, 0.14)]:
-        d.rectangle([x0 + w * fx, y1 - h * (0.30 + fh), x0 + w * (fx + fw_), y1 - h * 0.30],
-                    fill=(36, 30, 60))
+    """Las Vegas at night: Stratosphere, hotel blocks, track, car — pixel art."""
+    im, g = px_canvas(96, 27, (12, 18, 40))
+    g.rectangle([0, 10, 96, 18], fill=(30, 26, 52))
+    # Stratosphere needle
+    g.polygon([(10, 19), (11, 3), (13, 19)], fill=(30, 26, 52))
+    g.rectangle([9, 2, 13, 4], fill=(255, 190, 90))
+    # hotel blocks with lit windows
+    for fx, fh, fw in [(19, 9, 13), (35, 7, 12), (48, 11, 15), (65, 8, 12),
+                       (79, 10, 13)]:
+        g.rectangle([fx, 19 - fh, fx + fw, 19], fill=(36, 30, 60))
         for wy in range(3):
             for wx in range(3):
-                d.rectangle([x0 + w * (fx + 0.02 + wx * 0.04),
-                             y1 - h * (0.30 + fh) + 3 + wy * 6,
-                             x0 + w * (fx + 0.03 + wx * 0.04),
-                             y1 - h * (0.30 + fh) + 5 + wy * 6],
-                            fill=(255, 200, 110))
+                g.point((fx + 2 + wx * 4, 19 - fh + 2 + wy * 3),
+                        fill=(255, 200, 110))
     # track
-    d.rectangle([x0, y1 - h * 0.30, x1, y1], fill=(52, 52, 58))
-    d.line([x0, y1 - h * 0.16, x1, y1 - h * 0.16], fill=(240, 240, 235), width=1)
-    for tx in range(0, 13):
-        d.line([x0 + tx * 16, y1 - h * 0.16, x0 + tx * 16 + 8, y1 - h * 0.16],
-               fill=(240, 240, 235), width=2)
+    g.rectangle([0, 19, 96, 27], fill=(52, 52, 58))
+    g.rectangle([0, 23, 96, 23], fill=(240, 240, 235))
+    for tx in range(0, 12):
+        g.rectangle([tx * 8, 23, tx * 8 + 4, 23], fill=(240, 240, 235))
     # race car
-    cx, cy = x0 + w * 0.52, y1 - h * 0.20
-    d.rounded_rectangle([cx - 26, cy - 6, cx + 26, cy + 2], radius=3, fill=(178, 34, 34))
-    d.polygon([(cx - 30, cy - 8), (cx - 22, cy - 8), (cx - 20, cy - 5),
-               (cx - 30, cy - 5)], fill=(120, 20, 20))
-    d.ellipse([cx - 20, cy, cx - 10, cy + 8], fill=(15, 15, 18),
-              outline=(200, 200, 200), width=1)
-    d.ellipse([cx + 10, cy, cx + 20, cy + 8], fill=(15, 15, 18),
-              outline=(200, 200, 200), width=1)
-    d.ellipse([cx - 2, cy - 8, cx + 8, cy - 2], fill=(30, 30, 36))
-    # checkered flag
-    fx0, fy0 = x0 + w * 0.80, y0 + 6
+    cx, cy = 50, 21
+    g.rectangle([cx - 13, cy - 3, cx + 13, cy + 1], fill=(178, 34, 34))
+    g.polygon([(cx - 15, cy - 4), (cx - 11, cy - 4), (cx - 10, cy - 2),
+               (cx - 15, cy - 2)], fill=(120, 20, 20))
+    g.rectangle([cx - 10, cy, cx - 5, cy + 4], fill=(15, 15, 18))
+    g.rectangle([cx + 5, cy, cx + 10, cy + 4], fill=(15, 15, 18))
+    g.rectangle([cx - 1, cy - 4, cx + 4, cy - 1], fill=(30, 30, 36))
+    # checkered flag (shifted right so the wide pixel chip clears it)
+    fx0, fy0 = 85, 3
     for r in range(3):
         for c in range(4):
             if (r + c) % 2 == 0:
-                d.rectangle([fx0 + c * 5, fy0 + r * 5, fx0 + c * 5 + 5, fy0 + r * 5 + 5],
+                g.rectangle([fx0 + c * 2, fy0 + r * 2,
+                             fx0 + c * 2 + 1, fy0 + r * 2 + 1],
                             fill=(20, 20, 20))
-    d.line([fx0, fy0, fx0, fy0 + 22], fill=(220, 220, 215), width=1)
-    draw_chip(d, x0 + 30, y0 + 5, "35 LEAD CHANGES", (20, 20, 31))
+    g.rectangle([fx0, fy0, fx0, fy0 + 11], fill=(220, 220, 215))
+    # chip
+    px_chip(g, 15, 2, "35 LEAD CHANGES", (20, 20, 31))
+    px_paste(d, box, im)
 
 
 def paint_tennis(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    d.rectangle([x0, y0, x1, y1], fill=(47, 111, 178))
-    d.rectangle([x0 + 8, y0 + 6, x1 - 8, y1 - 6], outline=(240, 240, 235), width=1)
-    d.line([x0 + 8, y0 + h * 0.5, x1 - 8, y0 + h * 0.5], fill=(240, 240, 235), width=1)
-    d.line([x0 + w * 0.32, y0 + 6, x0 + w * 0.32, y1 - 6], fill=(240, 240, 235), width=1)
-    d.line([x0 + w * 0.68, y0 + 6, x0 + w * 0.68, y1 - 6], fill=(240, 240, 235), width=1)
+    """Turin: blue court, net, ball, trophy — pixel art."""
+    im, g = px_canvas(96, 27, (47, 111, 178))
+    g.rectangle([4, 3, 92, 24], outline=(240, 240, 235))
+    g.rectangle([4, 13, 92, 13], fill=(240, 240, 235))
+    g.rectangle([31, 3, 31, 24], fill=(240, 240, 235))
+    g.rectangle([65, 3, 65, 24], fill=(240, 240, 235))
     # net
-    ny = y0 + h * 0.5
-    d.rectangle([x0 + 8, ny - 4, x1 - 8, ny + 2], fill=(235, 235, 228))
-    for nx in range(10, w - 10, 8):
-        d.line([x0 + nx, ny - 4, x0 + nx, ny + 2], fill=(120, 120, 115), width=1)
-    d.rectangle([x0 + 6, ny - 7, x0 + 10, ny + 5], fill=(30, 30, 34))
-    d.rectangle([x1 - 10, ny - 7, x1 - 6, ny + 5], fill=(30, 30, 34))
+    g.rectangle([4, 11, 92, 14], fill=(235, 235, 228))
+    for nx in range(8, 88, 4):
+        g.rectangle([nx, 11, nx, 14], fill=(120, 120, 115))
+    g.rectangle([3, 10, 5, 15], fill=(30, 30, 34))
+    g.rectangle([91, 10, 93, 15], fill=(30, 30, 34))
     # ball
-    bx, by = x0 + w * 0.24, y0 + h * 0.28
-    d.ellipse([bx - 6, by - 6, bx + 6, by + 6], fill=(204, 255, 0),
-              outline=(255, 255, 255), width=1)
-    d.arc([bx - 6, by - 6, bx + 6, by + 6], 300, 60, fill=(255, 255, 255), width=1)
+    g.ellipse([20, 5, 26, 11], fill=(204, 255, 0), outline=(255, 255, 255))
+    g.point((23, 5), fill=(255, 255, 255))
+    g.point((23, 11), fill=(255, 255, 255))
     # trophy
-    tx, ty = x0 + w * 0.82, y0 + h * 0.62
-    d.polygon([(tx - 9, ty - 12), (tx + 9, ty - 12), (tx + 6, ty + 2),
-               (tx - 6, ty + 2)], fill=(212, 175, 55))
-    d.arc([tx - 14, ty - 14, tx - 4, ty - 2], 90, 270, fill=(212, 175, 55), width=2)
-    d.arc([tx + 4, ty - 14, tx + 14, ty - 2], 270, 90, fill=(212, 175, 55), width=2)
-    d.line([tx, ty + 2, tx, ty + 9], fill=(212, 175, 55), width=3)
-    d.rectangle([tx - 7, ty + 9, tx + 7, ty + 13], fill=(212, 175, 55))
-    d.text((x0 + 6, y1 - 14), "MAIDEN TITLE", font=IN(7), fill=(235, 235, 225))
+    tx, ty = 79, 17
+    g.polygon([(tx - 5, ty - 6), (tx + 5, ty - 6), (tx + 3, ty + 1),
+               (tx - 3, ty + 1)], fill=(212, 175, 55))
+    g.rectangle([tx - 7, ty - 6, tx - 5, ty - 2], fill=(212, 175, 55))
+    g.rectangle([tx + 5, ty - 6, tx + 7, ty - 2], fill=(212, 175, 55))
+    g.rectangle([tx, ty + 1, tx, ty + 5], fill=(212, 175, 55))
+    g.rectangle([tx - 4, ty + 5, tx + 4, ty + 7], fill=(212, 175, 55))
+    px_text(g, 3, 23, "MAIDEN TITLE", FONT35, (235, 235, 225))
+    px_paste(d, box, im)
 
 
 def paint_football(d, box):
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    d.rectangle([x0, y0, x1, y1], fill=(46, 125, 62))
-    d.rectangle([x0 + 6, y0 + 5, x1 - 6, y1 - 5], outline=(240, 240, 235), width=1)
-    d.line([x0 + w * 0.5, y0 + 5, x0 + w * 0.5, y1 - 5], fill=(240, 240, 235), width=1)
-    d.ellipse([x0 + w * 0.5 - 12, y0 + h * 0.5 - 12, x0 + w * 0.5 + 12,
-               y0 + h * 0.5 + 12], outline=(240, 240, 235), width=1)
-    d.rectangle([x0 + 6, y0 + h * 0.28, x0 + w * 0.26, y0 + h * 0.72],
-                outline=(240, 240, 235), width=1)
-    d.rectangle([x0 + w * 0.74, y0 + h * 0.28, x1 - 6, y0 + h * 0.72],
-                outline=(240, 240, 235), width=1)
+    """Anfield: green pitch, goal, ball, 4-0 — pixel art."""
+    im, g = px_canvas(96, 27, (46, 125, 62))
+    g.rectangle([3, 2, 93, 25], outline=(240, 240, 235))
+    g.rectangle([48, 2, 48, 25], fill=(240, 240, 235))
+    g.ellipse([42, 8, 54, 20], outline=(240, 240, 235))
+    g.rectangle([3, 8, 25, 19], outline=(240, 240, 235))
+    g.rectangle([71, 8, 93, 19], outline=(240, 240, 235))
     # goal + net
-    gx0, gy0 = x0 + w * 0.78, y0 + h * 0.30
-    d.rectangle([gx0, gy0, gx0 + 30, gy0 + 20], outline=(255, 255, 255), width=2)
-    for i in range(1, 6):
-        d.line([gx0 + i * 5, gy0, gx0 + i * 5, gy0 + 20], fill=(220, 220, 215), width=1)
-        d.line([gx0, gy0 + i * 4, gx0 + 30, gy0 + i * 4], fill=(220, 220, 215), width=1)
+    gx0, gy0 = 75, 8
+    g.rectangle([gx0, gy0, gx0 + 15, gy0 + 10], outline=(255, 255, 255))
+    for i in range(1, 4):
+        g.rectangle([gx0 + i * 4, gy0, gx0 + i * 4, gy0 + 10],
+                    fill=(220, 220, 215))
+        g.rectangle([gx0, gy0 + i * 3, gx0 + 15, gy0 + i * 3],
+                    fill=(220, 220, 215))
     # ball
-    bx, by = x0 + w * 0.42, y0 + h * 0.62
-    d.ellipse([bx - 6, by - 6, bx + 6, by + 6], fill=(250, 250, 245),
-              outline=(30, 30, 30), width=1)
-    d.ellipse([bx - 2, by - 2, bx + 2, by + 2], fill=(30, 30, 30))
-    # scoreboard
-    draw_chip(d, x0 + 30, y0 + 5, "4–0", (20, 20, 31))
+    g.ellipse([37, 14, 43, 20], fill=(250, 250, 245), outline=(30, 30, 30))
+    g.rectangle([39, 16, 41, 18], fill=(30, 30, 30))
+    # scoreboard chip
+    px_chip(g, 15, 2, "4–0", (20, 20, 31))
+    px_paste(d, box, im)
 
 
 def paint_manipur(d, box):
@@ -887,6 +872,128 @@ def paint_gaza(d, box):
     d.ellipse([tx + 26, ty, tx + 32, ty + 6], fill=(20, 20, 24))
     d.ellipse([tx + 38, ty, tx + 44, ty + 6], fill=(20, 20, 24))
     draw_chip(d, x0 + 30, y0 + 5, "3 KILLED", RED)
+
+
+# ---------------------------------------------------------------- stories
+# All facts verified in-session against the wires for Sunday 22 Nov 2026.
+LEAD = dict(
+    num=1, city="ANTALYA", region="EUROPE", topic="CLIMATE",
+    headline="COP31 collapses: no deal as the EU revolts over fossil fuels",
+    dek=("After a record two days in overtime, the Antalya Pact falls: the EU, "
+         "Panama and island states refuse a text that never mentions fossil "
+         "fuels. The longest COP in history ends with no deal — the first "
+         "collapse since Copenhagen in 2009."),
+    source="CNN · Al Jazeera", lon=30.7, lat=36.9)
+
+CARDS = [
+    dict(num=2, city="KYIV REGION", region="EUROPE", topic="WAR",
+         headline="Russia fires 186 drones; a Kyiv-region block is destroyed",
+         dek="161 of 186 drones downed; hits at 18 sites. Five dead in Dymer.",
+         source="Air Force", art=paint_drones, lon=30.3, lat=50.9),
+    dict(num=3, city="MANAMA", region="MIDDLE EAST", topic="IRAN WAR",
+         headline="Iran claims two US radars hit; Bahrain denies it",
+         dek="Bahrain says a civilian site was hit; two hurt, no US damage.",
+         source="Al Jazeera", art=paint_bahrain, lon=50.6, lat=26.2),
+    dict(num=4, city="HONG KONG", region="ASIA", topic="POLITICS",
+         headline="Hong Kong votes for its Election Committee",
+         dek=("Record 98.79% turnout: 5,640 of 5,709 voters cast ballots; "
+              "856 candidates chase 723 seats."),
+         source="SCMP", art=paint_hk, lon=114.2, lat=22.3),
+    dict(num=5, city="WELLINGTON", region="OCEANIA", topic="SPORT",
+         headline="India declare on a record 720/9 in New Zealand",
+         dek=("Rahul 136, Pant 128; the highest total ever in New Zealand "
+              "and India's best overseas. NZ 119-2 at stumps."),
+         source="Dawn", art=paint_cricket, lon=174.8, lat=-41.3),
+    dict(num=6, city="LAS VEGAS", region="AMERICAS", topic="SPORT",
+         headline="Verstappen wins a wild Las Vegas GP",
+         dek=("From pole, Norris second by 0.639s; Piastri third from 17th. "
+              "35 lead changes, 352 overtakes."),
+         source="Reuters", art=paint_f1, lon=-115.1, lat=36.2),
+    dict(num=7, city="TURIN", region="EUROPE", topic="SPORT",
+         headline="Alcaraz beats Zverev for the ATP Finals title",
+         dek=("6-2, 7-6(9-7): the Spaniard saves three set points to win "
+              "his first ATP Finals crown."),
+         source="Reuters", art=paint_tennis, lon=7.7, lat=45.1),
+    dict(num=8, city="LIVERPOOL", region="EUROPE", topic="SPORT",
+         headline="Liverpool thrash 10-man United in Pochettino's debut",
+         dek=("Yoro off after 8 minutes; Szoboszlai, Wirtz, Ngumoha, Munoz "
+              "score. United 19th."),
+         source="Reuters", art=paint_football, lon=-3.0, lat=53.4),
+    dict(num=9, city="MANIPUR", region="ASIA", topic="DISASTER",
+         headline="Toxic-liquor toll in Manipur climbs to 17",
+         dek=("228 in hospital, 38 on dialysis; 1,130 screened. Six "
+              "arrested, 4,500 litres seized."),
+         source="ThePrint", art=paint_manipur, lon=93.9, lat=24.8),
+    dict(num=10, city="CIKANDE", region="ASIA", topic="DISASTER",
+         headline="Candy-factory fire in Cikande: 3 dead, 36 missing",
+         dek=("Blaze tore through the Fonusa plant Saturday; 300 were on "
+              "site. Search goes on."),
+         source="CNA", art=paint_cikande, lon=106.3, lat=-6.2),
+    dict(num=11, city="GULF OF FINLAND", region="EUROPE", topic="WAR",
+         headline="Russian cargo ship still burning off Finland",
+         dek=("Drones hit the sanctioned Sparta II on Saturday; her 16 crew "
+              "are safe. Towing begins Sunday."),
+         source="Reuters", art=paint_sparta, lon=26.2, lat=60.45),
+    dict(num=12, city="TEHRAN", region="ENERGY", topic="ENERGY",
+         headline="Iran begins rationing electricity",
+         dek=("Rolling cuts of up to two hours a day as war strains the "
+              "grid; Pezeshkian works in the dark."),
+         source="Straits Times", art=paint_tehran, lon=51.4, lat=35.7),
+    dict(num=13, city="GAZA CITY", region="MIDDLE EAST", topic="WAR",
+         headline="Hamas seeks urgent mediator talks",
+         dek=("A drone strike on a food-aid vehicle killed three in Tel "
+              "al-Hawa. Hamas demands aid flow freely."),
+         source="AFP", art=paint_gaza, lon=34.5, lat=31.5),
+]
+# fix: card 12 kicker region is MIDDLE EAST, topic ENERGY
+CARDS[10]["region"] = "MIDDLE EAST"
+
+INDEX = [
+    (14, "Khartoum", "AFRICA", "Drones hit homes and a UN building.", "AFP", 32.5, 15.6),
+    (15, "Jerusalem", "MIDDLE EAST", "Netanyahu and Eisenkot end talks with no deal.", "AP", 35.2, 31.8),
+    (16, "Paris", "EUROPE", "French protesters rally for a sixth weekend.", "AFP", 2.35, 48.85),
+    (17, "Lisbon", "EUROPE", "Thousands march over soaring living costs.", "Dawn", -9.1, 38.7),
+    (18, "Warsaw", "EUROPE", "Poland says Russia twice tried to kill a rapper.", "AP", 21.0, 52.25),
+    (19, "West Bank", "MIDDLE EAST", 'Eisenkot calls settler arson "terrorism".', "The Hindu", 35.2, 31.9),
+    (20, "Riyadh", "MIDDLE EAST", "Saudi coalition intercepts a Houthi drone.", "TOI", 46.7, 24.6),
+    (21, "Qeshm Island", "MIDDLE EAST", "Iran says it shot down a US drone over Qeshm.", "TOI", 56.3, 26.9),
+    (22, "Makkah", "MIDDLE EAST", "Saudi Arabia issues an alert for Makkah.", "AIR", 39.8, 21.4),
+    (23, "Washington", "AMERICAS", "Trump says Iran wants a deal, terms unacceptable.", "AP", -77.0, 38.9),
+    (24, "Moscow", "EUROPE", "Russia seizes on a US offer on European security.", "AP", 37.6, 55.75),
+    (25, "New Delhi", "ASIA", "Nepal PM Balendra Shah arrives in Delhi.", "The Hindu", 77.2, 28.6),
+    (26, "Arunachal", "ASIA", "40 border villages see families return.", "The Hindu", 96.0, 27.3),
+    (27, "India", "ASIA", "India thrash Thailand 7-0 in women's hockey.", "The Hindu", 80.0, 21.0),
+    (28, "Johannesburg", "AFRICA", "Ex-deputy president Mlambo-Ngcuka dies at 71.", "AP", 28.0, -26.2),
+    (29, "Nigeria", "AFRICA", "Boat capsizes on the way to a funeral; 24 dead.", "AP", 8.0, 9.0),
+    (30, "Rome", "EUROPE", "Paolo Bulgari, jeweller and luxury builder, dies at 89.", "AP", 12.5, 41.9),
+    (31, "London", "EUROPE", "England beat New Zealand 37-12.", "All Blacks", -0.1, 51.5),
+    (32, "Wollongong", "OCEANIA", "England beat France 50-38 in wheelchair final.", "BBC", 150.9, -34.4),
+    (33, "Geneva", "EUROPE", 'Countries open a path to a "killer robots" accord.', "Dawn", 6.1, 46.2),
+    (34, "Strait of Hormuz", "MIDDLE EAST", "Briton swims the strait for the environment.", "Dawn", 56.5, 26.5),
+    (35, "England", "EUROPE", 'Village votes to "leave the UK" over a migrant camp.', "Dawn", -1.0, 52.5),
+    (36, "Washington", "AMERICAS", "Pentagon curbs defence ties with Canada.", "Dawn", -77.0, 38.9),
+    (37, "Mexico", "AMERICAS", "US-bound migrant caravan reaches Mexico.", "Dawn", -99.1, 19.4),
+    (38, "West Bengal", "ASIA", "Christians complain of rising attacks.", "Dawn", 88.4, 22.6),
+    (39, "United Nations", "GLOBAL", "Youth face economic insecurity, UN warns.", "Dawn", -73.97, 40.75),
+    (40, "Kabul", "ASIA", "Afghan tradition keeps grapes fresh for winter.", "Dawn", 69.2, 34.5),
+    (41, "Benghazi", "AFRICA", "Russian warship reported hit at a Libyan base.", "AP", 20.1, 32.1),
+    (42, "Odesa", "EUROPE", "Strikes cripple the power grid.", "Europa Journal", 30.7, 46.5),
+]
+
+STATS = [
+    ("186", "DRONES LAUNCHED"),
+    ("161", "DOWNED OR JAMMED"),
+    ("98.79%", "HK TURNOUT"),
+    ("720/9", "INDIA'S RECORD TOTAL"),
+    ("4–0", "LIVERPOOL"),
+]
+
+DATE_CHECK = ("DATE CHECK — NOT SUNDAY:  Friday · Gen Z protests sweep 25 "
+              "European countries (AFP)  ·  Saturday · Drones hit the Sparta II "
+              "(Yle)  ·  Fire breaks out at Cikande (AP)  ·  Iranian attacks hit "
+              "a civilian site in Bahrain (Khaleej Times)")
+
+# ---------------------------------------------------------------- layout
 
 
 # ---------------------------------------------------------------- stories
